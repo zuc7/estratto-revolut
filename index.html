@@ -28,7 +28,7 @@
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.5 var(--f-body);font-variant-numeric:tabular-nums}
+body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.5 var(--f-body);font-variant-numeric:tabular-nums;overflow-x:hidden}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:6px}
@@ -37,15 +37,15 @@ h1,h2,h3,h4{font-family:var(--f-display)}
 
 /* ---------- barra superiore ---------- */
 .top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:12px;height:68px;padding:0 20px;background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-.brand{font:700 21px/1 var(--f-display);letter-spacing:-.025em;display:flex;align-items:center;gap:9px;margin-right:6px}
+.brand{font:700 21px/1 var(--f-display);letter-spacing:-.025em;display:flex;align-items:center;gap:9px;margin-right:6px;flex-shrink:0}
 .brand svg{width:32px;height:32px;padding:7px;border-radius:50%;background:var(--accent);color:#fff;flex:none}
 .dashing .top{padding-left:0}
 .dashing .brand{align-self:stretch;width:240px;padding-left:24px;margin-right:8px;border-right:1px solid var(--line)}
 .filechip{display:flex;flex-direction:column;justify-content:center;min-width:0;color:var(--ink3);font-size:12.5px;line-height:1.35;white-space:nowrap}
 .filechip>*{overflow:hidden;text-overflow:ellipsis}
 .filechip b{color:var(--ink);font-weight:600;font-size:15px}
-.spacer{flex:1}
-.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);padding:7px 13px;border-radius:9px;line-height:1.2}
+.spacer{flex:1;min-width:0}
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);padding:7px 13px;border-radius:9px;line-height:1.2;white-space:nowrap;flex-shrink:0}
 .btn:hover{border-color:var(--ink3)}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:600}
 .btn.primary:hover{filter:brightness(1.07)}
@@ -77,7 +77,7 @@ h1,h2,h3,h4{font-family:var(--f-display)}
 
 /* ---------- layout dashboard ---------- */
 .dash{display:grid;grid-template-columns:240px minmax(0,1fr);align-items:start}
-#main{padding:20px 24px 70px;min-width:0;max-width:1560px}
+#main{padding:20px 24px 70px;min-width:0;max-width:1720px;width:100%}
 .rail{position:fixed;top:0;right:0;bottom:0;width:min(340px,92vw);z-index:40;overflow:auto;background:var(--surface);border-left:1px solid var(--line);border-radius:14px 0 0 14px;padding:16px;transform:translateX(105%);visibility:hidden;transition:transform .2s,visibility .2s}
 .rail.open{transform:none;visibility:visible}
 .rail-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
@@ -120,14 +120,12 @@ input:focus,select:focus{border-color:var(--accent)}
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;min-width:0}
 .kpi .l{color:var(--ink);font-size:15px}
-.kpi .v{font:700 31px/1.15 var(--f-display);letter-spacing:-.02em;margin:8px 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .v{font:700 clamp(20px,2.2vw,31px)/1.15 var(--f-display);letter-spacing:-.02em;margin:8px 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi .s{color:var(--ink3);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi .d{font-size:12.5px;white-space:nowrap}
 .kpi .d.good{color:var(--in)} .kpi .d.bad{color:var(--out)} .kpi .d.flat{color:var(--ink3)}
 .kpi .d small{color:var(--ink3);font-size:12px}
 .neg{color:var(--out)} .pos{color:var(--in)}
-@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:560px){.kpis{grid-template-columns:1fr}}
 
 .side{position:sticky;top:68px;height:calc(100vh - 68px);display:flex;flex-direction:column;gap:6px;padding:20px 16px;border-right:1px solid var(--line);background:var(--surface);overflow:auto}
 .tabs{display:flex;flex-direction:column;gap:6px}
@@ -150,7 +148,8 @@ input:focus,select:focus{border-color:var(--accent)}
 .legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .legend i.ln-i{height:2px;width:14px;background:var(--ink);border-radius:2px}
 .s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s8{grid-column:span 8}
-@media(max-width:1100px){.s4,.s5,.s6,.s7,.s8{grid-column:span 12}}
+@media(max-width:1100px){.s5,.s7,.s8{grid-column:span 12}.s4{grid-column:span 6}}
+@media(max-width:768px){.s4,.s5,.s6,.s7,.s8{grid-column:span 12}}
 
 svg{display:block;max-width:100%}
 svg text{font:11px var(--f-body);fill:var(--ink3)}
@@ -162,7 +161,7 @@ svg .seg-c:hover{stroke-width:calc(var(--sw) + 5px)}
 svg .dc{font:700 15px var(--f-display);fill:var(--ink)}
 svg .dcs{font:11px var(--f-body);fill:var(--ink3)}
 [data-act]{cursor:pointer}
-.heat-wrap{overflow-x:auto;padding-bottom:6px}
+.heat-wrap{overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch}
 
 #tip{position:fixed;z-index:100;pointer-events:none;background:var(--ink);color:var(--surface);padding:8px 11px;border-radius:9px;font-size:12.5px;line-height:1.45;max-width:290px;opacity:0;transition:opacity .08s;left:0;top:0}
 #tip.on{opacity:1}
@@ -185,7 +184,7 @@ svg .dcs{font:11px var(--f-body);fill:var(--ink3)}
 .insights li{padding-left:18px;position:relative}
 .insights li::before{content:"";position:absolute;left:0;top:.62em;width:7px;height:7px;border-radius:2px;background:var(--accent)}
 
-.tablewrap{overflow-x:auto}
+.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse}
 th{font-weight:600;font-size:12.5px;color:var(--ink2);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
 th.num,td.num{text-align:right}
@@ -233,7 +232,8 @@ tbody tr:hover td{background:var(--hover)}
 .qi b{display:block;color:var(--c);font-weight:600}
 .qi span{display:block;color:var(--ink2);font-size:12.5px}
 .dot-t{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px}
-@media(max-width:1280px){.row3{grid-template-columns:1fr}}
+@media(max-width:1200px){.row3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}}
+@media(max-width:680px){.row3{grid-template-columns:1fr}}
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 @media print{.side,.rail,#backdrop,#toast,.top .btn,.top .spacer{display:none!important}.top{position:static}.dash{display:block}.dashing .brand{border:0}.card{break-inside:avoid}}
 
@@ -257,17 +257,53 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
 .chk input{width:auto;accent-color:var(--accent)}
 @media(max-width:560px){.fgrid{grid-template-columns:1fr}}
 
-/* ---------- mobile ---------- */
+/* ---------- mobile e finestre ridimensionate ---------- */
 #backdrop{position:fixed;inset:0;background:rgba(8,12,24,.5);z-index:35}
 @media(max-width:980px){
   .dash{grid-template-columns:1fr}
   #main{padding:14px 14px 60px}
-  .side{position:static;height:auto;flex-direction:row;align-items:center;padding:8px 12px;border-right:0;border-bottom:1px solid var(--line)}
-  .tabs{flex-direction:row}
-  .tab{width:auto}
+  .side{position:sticky;top:58px;z-index:25;height:auto;flex-direction:row;align-items:center;padding:6px 12px;border-right:0;border-bottom:1px solid var(--line);background:var(--surface);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .side::-webkit-scrollbar{display:none}
+  .tabs{flex-direction:row;flex-shrink:0;gap:4px}
+  .tab{width:auto;flex-shrink:0;padding:7px 10px;font-size:13px;border-radius:8px}
+  .tab svg{width:16px;height:16px}
   .side-foot{display:none}
+  .dashing .top{padding-left:14px}
   .dashing .brand{width:auto;padding:0;border-right:0}
   .filechip .meta{display:none}
+}
+@media(max-width:768px){
+  .top{height:58px;padding:0 12px;gap:8px}
+  .brand{font-size:18px;gap:7px}
+  .brand svg{width:26px;height:26px;padding:5px}
+  .btn{padding:6px 10px;font-size:12px;gap:5px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .kpi{padding:14px 16px}
+  th,td{padding:6px 8px;font-size:12px}
+  td.desc{max-width:min(220px,40vw)}
+}
+@media(max-width:580px){
+  .top{padding:0 8px;gap:6px}
+  .dashing .top{padding-left:8px}
+  .filechip{display:none}
+  .top .btn{padding:6px 8px}
+  .top .btn .btn-lbl{display:none}
+  .kpi{padding:12px 14px}
+  .kpi .l{font-size:13px}
+  .kpi .v{margin:4px 0 2px}
+  .tools .btn{width:100%;justify-content:center}
+  .pager{justify-content:space-between}
+  .statline{gap:12px}
+  .statline div{min-width:calc(50% - 6px)}
+}
+@media(max-width:420px){
+  #main{padding:10px 8px 50px}
+  .kpis{grid-template-columns:1fr;gap:8px}
+  .landing{padding:20px 14px 44px;gap:24px}
+  .landing h1{font-size:clamp(26px,8vw,36px)}
+  .actions .btn{width:100%;justify-content:center}
+  .receipt{transform:none}
+  .rail{width:100vw;border-radius:0}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -281,11 +317,11 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
   </div>
   <div class="filechip" id="fileChip" hidden></div>
   <div class="spacer"></div>
-  <button class="btn" id="btnRail" hidden data-act="openrail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filtri</button>
-  <button class="btn" id="btnRev" hidden data-act="revolut">Aggiorna da Revolut</button>
-  <button class="btn ghost" id="btnDisRev" hidden data-act="disconnect-revolut" title="Disconnetti Revolut da questo dispositivo">Disconnetti</button>
-  <button class="btn" id="btnPdf" hidden data-act="pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></svg>Esporta PDF</button>
-  <button class="btn" id="btnNew" hidden data-act="pick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>Nuovo file</button>
+  <button class="btn" id="btnRail" hidden data-act="openrail" aria-label="Filtri" title="Filtri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span class="btn-lbl">Filtri</span></button>
+  <button class="btn" id="btnRev" hidden data-act="revolut" aria-label="Aggiorna da Revolut" title="Aggiorna da Revolut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg><span class="btn-lbl">Revolut</span></button>
+  <button class="btn ghost" id="btnDisRev" hidden data-act="disconnect-revolut" aria-label="Disconnetti Revolut" title="Disconnetti Revolut da questo dispositivo"><span class="btn-lbl">Disconnetti</span></button>
+  <button class="btn" id="btnPdf" hidden data-act="pdf" aria-label="Esporta PDF" title="Esporta PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></svg><span class="btn-lbl">Esporta PDF</span></button>
+  <button class="btn" id="btnNew" hidden data-act="pick" aria-label="Nuovo file" title="Nuovo file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg><span class="btn-lbl">Nuovo file</span></button>
   <button class="btn icon" data-act="theme" aria-label="Cambia tema chiaro/scuro" title="Cambia tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg></button>
 </header>
 
