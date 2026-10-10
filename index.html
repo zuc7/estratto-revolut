@@ -95,6 +95,7 @@ h1,h2,h3,h4{font-family:var(--f-display)}
 input[type=date],input[type=number],input[type=search],input[type=text],select{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:7px 9px;min-width:0}
 input:focus,select:focus{border-color:var(--accent)}
 .presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.week-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px}
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 11px;font-size:12.5px}
 .chip:hover{border-color:var(--ink3)}
 .chip[aria-pressed=true]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
@@ -325,6 +326,17 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
     <div class="fs">
       <h4>Periodo</h4>
       <div class="presets" id="presets"></div>
+      <div class="week-row">
+        <label class="st" style="flex:1;margin-bottom:0">Settimane (dom→dom)
+          <select id="fWeeks">
+            <option value="">—</option>
+            <option value="w1">1 settimana</option>
+            <option value="w2">2 settimane</option>
+            <option value="w3">3 settimane</option>
+            <option value="w4">4 settimane</option>
+          </select>
+        </label>
+      </div>
       <div class="two">
         <label class="st">Dal<input type="date" id="fFrom"></label>
         <label class="st">Al<input type="date" id="fTo"></label>
@@ -1028,15 +1040,28 @@ function render() {
 
 function presetRange(k) {
   if (k === 'all') return ['', ''];
-  const max = S.bounds.max; let from;
-  if (k === 'year') from = new Date(max.getFullYear(), 0, 1);
-  else from = addDays(max, -(Number(k) - 1));
-  if (from < S.bounds.min) from = S.bounds.min;
-  return [isoOf(from), isoOf(max)];
+  const max = S.bounds.max;
+  if (k === 'year') {
+    const from = new Date(max.getFullYear(), 0, 1);
+    return [isoOf(from < S.bounds.min ? S.bounds.min : from), isoOf(max)];
+  }
+  if (k.startsWith('w')) {
+    const numWeeks = parseInt(k.slice(1), 10) || 1;
+    // calcola la domenica di fine (quella più vicina, compresa oggi se domenica)
+    const day = max.getDay(); // 0=dom, 1=lun, ...
+    const endSun = day === 0 ? max : addDays(max, 7 - day);
+    const startSun = addDays(endSun, -7 * numWeeks);
+    const from = startSun < S.bounds.min ? S.bounds.min : startSun;
+    return [isoOf(from), isoOf(endSun)];
+  }
+  const from = addDays(max, -(Number(k) - 1));
+  return [isoOf(from < S.bounds.min ? S.bounds.min : from), isoOf(max)];
 }
 function activePreset() {
   const f = S.filters;
-  for (const k of ['all', '30', '90', '180', '365', 'year']) { const [a, b] = presetRange(k); if (f.from === a && f.to === b) return k; }
+  for (const k of ['all', 'w1', 'w2', 'w3', 'w4', '30', '90', '180', '365', 'year']) {
+    const [a, b] = presetRange(k); if (f.from === a && f.to === b) return k;
+  }
   return null;
 }
 
@@ -1046,6 +1071,9 @@ function renderRail() {
   $('#presets').innerHTML = P.map(([k, l]) => `<button class="chip" data-act="preset" data-k="${k}" aria-pressed="${ap === k}">${l}</button>`).join('');
   const setVal = (id, v) => { const e = $(id); if (document.activeElement !== e) e.value = v; };
   setVal('#fFrom', f.from); setVal('#fTo', f.to);
+  // sincronizza il select settimane con il preset attivo
+  const wEl = $('#fWeeks');
+  if (document.activeElement !== wEl) wEl.value = (ap && ap.startsWith('w')) ? ap : '';
   let ms = '';
   if (f.from && f.to) {
     const a = fromIso(f.from), b = fromIso(f.to);
@@ -1506,7 +1534,7 @@ function saveCat() {
 
 function clearFilter(k) {
   const f = S.filters;
-  if (k === 'date') { f.from = ''; f.to = ''; $('#fMonth').value = ''; }
+  if (k === 'date') { f.from = ''; f.to = ''; $('#fMonth').value = ''; $('#fWeeks').value = ''; }
   if (k === 'type') f.type = 'all';
   if (k === 'cats') f.cats = new Set(S.cats);
   if (k === 'accts') f.accts = new Set(S.accts);
@@ -1531,7 +1559,7 @@ document.addEventListener('click', e => {
     case 'openrail': $('#rail').classList.add('open'); $('#backdrop').hidden = false; break;
     case 'closerail': closeRail(); break;
     case 'tab': S.tab = v.tab; renderTabs(); renderPanel(); break;
-    case 'reset': S.filters = defaultFilters(); $('#fQ').value = ''; $('#fMin').value = ''; $('#fMax').value = ''; S.page = 0; render(); break;
+    case 'reset': S.filters = defaultFilters(); $('#fQ').value = ''; $('#fMin').value = ''; $('#fMax').value = ''; $('#fWeeks').value = ''; S.page = 0; render(); break;
     case 'clear': clearFilter(v.k); break;
     case 'preset': { const [a1, b1] = presetRange(v.k); f.from = a1; f.to = b1; S.page = 0; render(); break; }
     case 'type': f.type = v.v; S.page = 0; render(); break;
@@ -1569,6 +1597,12 @@ $('#fMonth').addEventListener('change', e => {
   if (!v) { S.filters.from = ''; S.filters.to = ''; S.page = 0; render(); return; }
   const [y, m] = v.split('-').map(Number);
   setRange(isoOf(new Date(y, m - 1, 1)), isoOf(new Date(y, m, 0)));
+});
+$('#fWeeks').addEventListener('change', e => {
+  const v = e.target.value;
+  if (!v) { S.filters.from = ''; S.filters.to = ''; S.page = 0; render(); return; }
+  const [a, b] = presetRange(v);
+  setRange(a, b);
 });
 const numOrNull = s => { const n = parseFloat(String(s).replace(',', '.')); return isFinite(n) ? n : null; };
 $('#fMin').addEventListener('input', debounce(e => { S.filters.min = numOrNull(e.target.value); S.page = 0; render(); }, 200));
