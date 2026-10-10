@@ -237,6 +237,16 @@ tbody tr:hover td{background:var(--hover)}
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 @media print{.side,.rail,#backdrop,#toast,.top .btn,.top .spacer{display:none!important}.top{position:static}.dash{display:block}.dashing .brand{border:0}.card{break-inside:avoid}}
 
+/* ---------- widget home + escludi ---------- */
+.wg-list{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin:10px 0 6px}
+.wg-item{display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:9px;cursor:pointer;font-size:13px}
+.wg-item input{accent-color:var(--accent);margin:0;flex:none}
+.btn-excl{border:0;background:transparent;padding:3px 8px;border-radius:6px;color:var(--ink3);font-size:12px;cursor:pointer;white-space:nowrap}
+.btn-excl:hover{background:var(--hover)}
+.btn-excl.excluded{color:var(--out);background:color-mix(in srgb,var(--out) 12%,transparent)}
+tr.is-excluded td{opacity:.45}
+tr.is-excluded td.desc, tr.is-excluded td.num{text-decoration:line-through}
+
 /* ---------- finestre ---------- */
 dialog{border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);padding:0;width:min(680px,94vw);max-height:90vh;box-shadow:0 24px 60px rgba(5,10,25,.35)}
 dialog[open]{display:flex;flex-direction:column}
@@ -408,6 +418,11 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
       <div class="fs-h"><h4>Conto o carta</h4></div>
       <div class="catlist" id="acctList"></div>
     </div>
+    <div class="fs" id="exclBox" hidden>
+      <div class="fs-h"><h4>Pagamenti esclusi</h4></div>
+      <p id="exclCount" style="font-size:12.5px;color:var(--ink2);margin:0 0 8px"></p>
+      <button class="btn ghost sm" data-act="excl-reset">Reinclude tutti</button>
+    </div>
   </aside>
 
   <aside class="side" aria-label="Navigazione">
@@ -441,6 +456,12 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
     <button class="btn" data-act="cat-cancel">Annulla</button>
     <button class="btn primary" data-act="cat-save">Salva</button>
   </div>
+</dialog>
+
+<dialog id="wgDlg" style="width:min(480px,94vw)">
+  <div class="dlg-h"><h2>Personalizza Panoramica</h2><p class="muted" style="margin:4px 0 0">Scegli quali sezioni visualizzare nella home.</p></div>
+  <div class="dlg-b" id="wgBody"></div>
+  <div class="dlg-f"><button class="btn primary" data-act="wg-close">Chiudi</button></div>
 </dialog>
 
 <div id="tip" role="tooltip"></div>
@@ -764,10 +785,21 @@ const tidyCat = s => { s = s.replace(/\s+/g, ' ').trim(); return (s.charAt(0).to
 /* =====================================================================
    Stato
    ===================================================================== */
+const WG_DEFS = [
+  {id: 'buckets', name: 'Entrate vs Uscite'},
+  {id: 'donut-exp', name: 'Categorie di spesa'},
+  {id: 'donut-inc', name: 'Distribuzione entrate'},
+  {id: 'frequent', name: 'Categorie più frequenti'},
+  {id: 'insights', name: 'Analisi rapida'},
+  {id: 'latest', name: 'Ultime transazioni'}
+];
+
 const S = {
   fileName: '', raw: null, map: null, sign: 'auto', dateFmt: 'dmy', autoNote: '',
   tx: [], skipped: 0, bounds: null, cats: [], knownCats: new Set(), hasAcct: false, accts: [],
   overrides: store.get('estratto.overrides', {}), txOv: new Map(),
+  excludedIds: new Set(store.get('estratto.excluded', [])),
+  widgets: new Set(store.get('estratto.widgets', WG_DEFS.map(w => w.id))),
   filters: null, tab: 'panoramica', sort: {key: 'date', dir: -1}, page: 0, pageSize: 50
 };
 let D = null;
@@ -915,6 +947,7 @@ function showDash() {
    Filtri e calcolo
    ===================================================================== */
 function passes(t, f, o = {}) {
+  if (!o.skipExcluded && S.excludedIds.has(t.id)) return false;
   if (!o.skipDate) { if (f.from && t.iso < f.from) return false; if (f.to && t.iso > f.to) return false; }
   if (f.type === 'out' && t.amount >= 0) return false;
   if (f.type === 'in' && t.amount < 0) return false;
@@ -1130,6 +1163,9 @@ function renderRail() {
   }).join('');
   $('#acctBox').hidden = !S.hasAcct;
   if (S.hasAcct) $('#acctList').innerHTML = S.accts.map(a => `<label class="cat"><input type="checkbox" data-acct="${esc(a)}" ${f.accts.has(a) ? 'checked' : ''}><span class="nm">${esc(a)}</span></label>`).join('');
+  const nexcl = S.excludedIds.size;
+  $('#exclBox').hidden = nexcl === 0;
+  if (nexcl) $('#exclCount').textContent = `${plural(nexcl, 'pagamento escluso', 'pagamenti esclusi')} dall'analisi`;
 }
 
 function renderActive() {
@@ -1141,6 +1177,7 @@ function renderActive() {
   if (S.hasAcct && f.accts.size !== S.accts.length) c('accts', f.accts.size <= 2 ? esc([...f.accts].join(', ')) : `${f.accts.size} conti`);
   if (f.min != null || f.max != null) c('amt', `Importo ${f.min != null ? 'da ' + fmt0(f.min) : ''} ${f.max != null ? 'a ' + fmt0(f.max) : ''}`.trim());
   if (f.q) c('q', `Cerca: “${esc(f.q)}”`);
+  if (S.excludedIds.size) chips.push(`<span class="achip">Escluse: ${nf.format(S.excludedIds.size)}<button data-act="excl-reset" aria-label="Reinclude tutte">✕</button></span>`);
   $('#active').innerHTML = `<span class="resultline" aria-live="polite">${nf.format(D.F.length)} di ${nf.format(S.tx.length)} operazioni</span>` + chips.join('') + (chips.length ? '<button class="btn ghost sm" data-act="reset">Azzera tutto</button>' : '');
 }
 
@@ -1392,6 +1429,11 @@ function insights() {
 
 function tabOverview(P) {
   const f = S.filters, iso = f.cats.size === 1, n = D.F.length;
+  const show = id => S.widgets.has(id);
+  const w = {
+    b: show('buckets'), de: show('donut-exp'), di: show('donut-inc'),
+    fq: show('frequent'), in: show('insights'), lt: show('latest')
+  };
   const cnt = new Map(); D.F.forEach(t => cnt.set(t.cat, (cnt.get(t.cat) || 0) + 1));
   const fr = [...cnt].sort((a, b) => b[1] - a[1]).slice(0, 5);
   const ico = {
@@ -1404,25 +1446,39 @@ function tabOverview(P) {
   if (D.expSum) Q.push({c: 'var(--accent)', i: ico.cal, t: `Spesa media: ~${fmt(D.avgDay)} al giorno`, s: `${fmt(D.avgMonth)} al mese · su ${plural(D.days, 'giorno', 'giorni')}`});
   if (top) Q.push({c: '#A15BF0', i: ico.ch, t: 'La categoria più alta', s: `${esc(top.cat)} (${pct(top.sum / D.expSum, 1)}) è la voce che pesa di più sulle uscite`});
   const last = D.F.slice(-5).reverse();
-  P.innerHTML = `<div class="grid">
-  <section class="card s6"><div class="card-h"><div><h3>Entrate vs Uscite</h3><p class="hint">Clicca una barra per limitare l’analisi a quel periodo.</p></div>
-    <div class="legend"><span><i style="background:var(--in)"></i>Entrate</span><span><i style="background:var(--out)"></i>Uscite</span><span><i class="ln-i"></i>Saldo</span></div></div><div id="cBuckets"></div></section>
-  <section class="card s6"><h3>Categorie di spesa</h3><div class="dwrap"><div id="cDonut"></div><div class="rows plain" id="catRows"></div></div></section>
-  <div class="row3">
-    <section class="card"><h3>Distribuzione entrate</h3><div class="dwrap"><div id="cDonutIn"></div><div class="rows plain" id="incRows"></div></div></section>
-    <section class="card"><h3>Categorie più frequenti</h3><p class="hint">Per numero di operazioni. Clicca per isolarle.</p>
-      ${fr.map(([c, k]) => `<button class="fq" data-act="cat" data-cat="${esc(c)}"><span class="nm"><i class="dot" style="background:${catColor(c)}"></i>${esc(c)}</span><span class="v">${k}<small>${pct(k / n, 1)}</small></span><span class="bar"><i style="width:${(k / fr[0][1] * 100).toFixed(1)}%;background:${catColor(c)}"></i></span></button>`).join('')}</section>
-    <section class="card"><h3>Analisi rapida</h3><div class="qa">${Q.map(x => `<div class="qi" style="--c:${x.c}"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${x.i}</svg></div><div><b>${x.t}</b><span>${x.s}</span></div></div>`).join('')}</div></section>
-  </div>
-  <section class="card"><div class="card-h"><h3>Ultime transazioni</h3><button class="btn ghost sm" data-act="tab" data-tab="transazioni">Vedi tutte →</button></div>
+
+  const secBuckets = w.b ? `<section class="card ${w.de ? 's6' : ''}"><div class="card-h"><div><h3>Entrate vs Uscite</h3><p class="hint">Clicca una barra per limitare l’analisi a quel periodo.</p></div>
+    <div class="legend"><span><i style="background:var(--in)"></i>Entrate</span><span><i style="background:var(--out)"></i>Uscite</span><span><i class="ln-i"></i>Saldo</span></div></div><div id="cBuckets"></div></section>` : '';
+  const secDonutExp = w.de ? `<section class="card ${w.b ? 's6' : ''}"><h3>Categorie di spesa</h3><div class="dwrap"><div id="cDonut"></div><div class="rows plain" id="catRows"></div></div></section>` : '';
+
+  const midCards = [];
+  if (w.di) midCards.push(`<section class="card"><h3>Distribuzione entrate</h3><div class="dwrap"><div id="cDonutIn"></div><div class="rows plain" id="incRows"></div></div></section>`);
+  if (w.fq) midCards.push(`<section class="card"><h3>Categorie più frequenti</h3><p class="hint">Per numero di operazioni. Clicca per isolarle.</p>
+    ${fr.map(([c, k]) => `<button class="fq" data-act="cat" data-cat="${esc(c)}"><span class="nm"><i class="dot" style="background:${catColor(c)}"></i>${esc(c)}</span><span class="v">${k}<small>${pct(k / n, 1)}</small></span><span class="bar"><i style="width:${(k / fr[0][1] * 100).toFixed(1)}%;background:${catColor(c)}"></i></span></button>`).join('')}</section>`);
+  if (w.in) midCards.push(`<section class="card"><h3>Analisi rapida</h3><div class="qa">${Q.map(x => `<div class="qi" style="--c:${x.c}"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${x.i}</svg></div><div><b>${x.t}</b><span>${x.s}</span></div></div>`).join('')}</div></section>`);
+  const secMid = midCards.length ? `<div class="row3">${midCards.join('')}</div>` : '';
+
+  const secLatest = w.lt ? `<section class="card"><div class="card-h"><h3>Ultime transazioni</h3><button class="btn ghost sm" data-act="tab" data-tab="transazioni">Vedi tutte →</button></div>
     <div class="tablewrap"><table><thead><tr><th>Data</th><th>Descrizione</th><th>Categoria</th><th>Tipo</th><th class="num">Importo</th><th class="num" title="Entrate meno uscite, accumulate dall’inizio del file">Saldo cumulato</th></tr></thead><tbody>
-    ${last.map(t => `<tr><td class="nowrap">${fmtDateShort(t.d)}</td><td class="desc" title="${esc(t.desc)}">${esc(t.desc)}</td><td class="nowrap"><span class="dot-t" style="background:${catColor(t.cat)}"></span>${esc(t.cat)}</td><td class="nowrap"><span class="dot-t" style="background:var(--${t.amount > 0 ? 'in' : 'out'})"></span>${t.amount > 0 ? 'Entrata' : 'Uscita'}</td><td class="num ${t.amount > 0 ? 'pos' : 'neg'}">${t.amount > 0 ? '+' : '−'}${fmt(t.abs)}</td><td class="num">${fmt(t.bal)}</td></tr>`).join('')}</tbody></table></div></section>
+    ${last.map(t => `<tr><td class="nowrap">${fmtDateShort(t.d)}</td><td class="desc" title="${esc(t.desc)}">${esc(t.desc)}</td><td class="nowrap"><span class="dot-t" style="background:${catColor(t.cat)}"></span>${esc(t.cat)}</td><td class="nowrap"><span class="dot-t" style="background:var(--${t.amount > 0 ? 'in' : 'out'})"></span>${t.amount > 0 ? 'Entrata' : 'Uscita'}</td><td class="num ${t.amount > 0 ? 'pos' : 'neg'}">${t.amount > 0 ? '+' : '−'}${fmt(t.abs)}</td><td class="num">${fmt(t.bal)}</td></tr>`).join('')}</tbody></table></div></section>` : '';
+
+  const hasAny = w.b || w.de || midCards.length || w.lt;
+
+  P.innerHTML = `<div class="tools" style="justify-content:flex-end;margin-bottom:12px"><button class="btn ghost sm" data-act="wg-open"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:5px;vertical-align:-2px"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Personalizza home</button></div>
+  <div class="grid">
+  ${secBuckets}${secDonutExp}${secMid}${secLatest}
+  ${!hasAny ? '<section class="card empty"><p>Nessun widget attivo nella home. Clicca “Personalizza home” per sceglierne alcuni.</p></section>' : ''}
   </div>`;
-  drawBuckets($('#cBuckets'));
-  drawDonut($('#cDonut'), D.catList, D.expSum, 'uscite totali');
-  drawDonut($('#cDonutIn'), D.incList, D.incSum, 'entrate totali');
-  $('#catRows').innerHTML = rowsHTML(D.catList.map(c => ({key: c.cat, label: c.cat, value: c.sum, color: catColor(c.cat), small: pct(c.sum / D.expSum, 1), on: iso && f.cats.has(c.cat), tip: `${esc(c.cat)}: ${plural(c.n, 'operazione', 'operazioni')}, massima ${fmt(c.max)}`})), {act: 'cat', attr: 'data-cat'});
-  $('#incRows').innerHTML = rowsHTML(D.incList.map(c => ({key: c.cat, label: c.cat, value: c.sum, color: catColor(c.cat), small: pct(c.sum / D.incSum, 1), on: iso && f.cats.has(c.cat), tip: `${esc(c.cat)}: ${plural(c.n, 'operazione', 'operazioni')}`})), {act: 'cat', attr: 'data-cat'});
+
+  if (w.b) drawBuckets($('#cBuckets'));
+  if (w.de) {
+    drawDonut($('#cDonut'), D.catList, D.expSum, 'uscite totali');
+    $('#catRows').innerHTML = rowsHTML(D.catList.map(c => ({key: c.cat, label: c.cat, value: c.sum, color: catColor(c.cat), small: pct(c.sum / D.expSum, 1), on: iso && f.cats.has(c.cat), tip: `${esc(c.cat)}: ${plural(c.n, 'operazione', 'operazioni')}, massima ${fmt(c.max)}`})), {act: 'cat', attr: 'data-cat'});
+  }
+  if (w.di) {
+    drawDonut($('#cDonutIn'), D.incList, D.incSum, 'entrate totali');
+    $('#incRows').innerHTML = rowsHTML(D.incList.map(c => ({key: c.cat, label: c.cat, value: c.sum, color: catColor(c.cat), small: pct(c.sum / D.incSum, 1), on: iso && f.cats.has(c.cat), tip: `${esc(c.cat)}: ${plural(c.n, 'operazione', 'operazioni')}`})), {act: 'cat', attr: 'data-cat'});
+  }
 }
 
 function tabCategories(P) {
@@ -1489,7 +1545,9 @@ function tabRecurring(P) {
 function sortedFiltered() {
   const {key, dir} = S.sort;
   const val = {date: t => t.ts, desc: t => t.merchant.toLowerCase(), cat: t => t.cat.toLowerCase(), amount: t => t.amount, acct: t => t.acct.toLowerCase()}[key];
-  return [...D.F].sort((a, b) => { const x = val(a), y = val(b); return (x < y ? -1 : x > y ? 1 : a.id - b.id) * dir; });
+  // ponytail: skipExcluded so excluded rows appear greyed-out in the transactions tab for re-inclusion
+  return [...S.tx].filter(t => passes(t, S.filters, {skipExcluded: true}))
+    .sort((a, b) => { const x = val(a), y = val(b); return (x < y ? -1 : x > y ? 1 : a.id - b.id) * dir; });
 }
 function tabTransactions(P) {
   const rows = sortedFiltered(), pages = Math.max(1, Math.ceil(rows.length / S.pageSize));
@@ -1497,8 +1555,11 @@ function tabTransactions(P) {
   const slice = rows.slice(S.page * S.pageSize, (S.page + 1) * S.pageSize);
   const th = (k, l, cls = '') => `<th class="${cls}" aria-sort="${S.sort.key === k ? (S.sort.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button class="thb" data-act="sort" data-key="${k}">${l}${S.sort.key === k ? (S.sort.dir > 0 ? ' ▲' : ' ▼') : ''}</button></th>`;
   P.innerHTML = `<section class="card"><div class="tools"><div><h3>Tutte le operazioni</h3><p class="hint" style="margin-bottom:0">Clicca una categoria per cambiarla: la correzione può valere per tutte le operazioni simili.</p></div><button class="btn" data-act="export">Esporta le operazioni filtrate</button></div>
-  <div class="tablewrap"><table><thead><tr>${th('date', 'Data')}${th('desc', 'Descrizione')}${th('cat', 'Categoria')}${S.hasAcct ? th('acct', 'Conto') : ''}${th('amount', 'Importo', 'num')}</tr></thead><tbody>
-  ${slice.map(t => `<tr><td class="nowrap">${fmtDateShort(t.d)}</td><td class="desc" title="${esc(t.desc)}">${esc(t.merchant)}<small>${esc(t.desc)}</small></td><td><button class="pill" data-act="edit" data-id="${t.id}" title="Cambia categoria"><i class="dot" style="background:${catColor(t.cat)}"></i>${esc(t.cat)}</button></td>${S.hasAcct ? `<td class="nowrap">${esc(t.acct)}</td>` : ''}<td class="num ${t.amount > 0 ? 'pos' : 'neg'}">${t.amount > 0 ? '+' : '−'}${fmt(t.abs).replace(/^-/, '')}</td></tr>`).join('')}</tbody></table></div>
+  <div class="tablewrap"><table><thead><tr>${th('date', 'Data')}${th('desc', 'Descrizione')}${th('cat', 'Categoria')}${S.hasAcct ? th('acct', 'Conto') : ''}${th('amount', 'Importo', 'num')}<th></th></tr></thead><tbody>
+  ${slice.map(t => {
+    const isExcl = S.excludedIds.has(t.id);
+    return `<tr class="${isExcl ? 'is-excluded' : ''}"><td class="nowrap">${fmtDateShort(t.d)}</td><td class="desc" title="${esc(t.desc)}">${esc(t.merchant)}<small>${esc(t.desc)}</small></td><td><button class="pill" data-act="edit" data-id="${t.id}" title="Cambia categoria"><i class="dot" style="background:${catColor(t.cat)}"></i>${esc(t.cat)}</button></td>${S.hasAcct ? `<td class="nowrap">${esc(t.acct)}</td>` : ''}<td class="num ${t.amount > 0 ? 'pos' : 'neg'}">${t.amount > 0 ? '+' : '−'}${fmt(t.abs).replace(/^-/, '')}</td><td class="nowrap" style="text-align:right"><button class="btn-excl ${isExcl ? 'excluded' : ''}" data-act="excl-toggle" data-id="${t.id}" title="${isExcl ? 'Reincludi nei conteggi' : 'Escludi dai calcoli e totali'}">${isExcl ? '✕ Esclusa' : 'Escludi'}</button></td></tr>`;
+  }).join('')}</tbody></table></div>
   <div class="pager"><span>${rows.length ? `${S.page * S.pageSize + 1}–${Math.min(rows.length, (S.page + 1) * S.pageSize)} di ${nf.format(rows.length)}` : '0 operazioni'}</span>
   <button class="btn sm" data-act="page" data-d="-1" ${S.page === 0 ? 'disabled' : ''}>Precedente</button><button class="btn sm" data-act="page" data-d="1" ${S.page >= pages - 1 ? 'disabled' : ''}>Successiva</button></div></section>`;
 }
@@ -1517,7 +1578,7 @@ function toast(msg) {
 function exportCSV() {
   const q = v => `"${String(v).replace(/"/g, '""')}"`;
   const lines = ['Data;Descrizione;Categoria;Importo' + (S.hasAcct ? ';Conto' : '')];
-  sortedFiltered().forEach(t => lines.push([fmtDateShort(t.d), q(t.desc), q(t.cat), t.amount.toFixed(2).replace('.', ','), ...(S.hasAcct ? [q(t.acct)] : [])].join(';')));
+  sortedFiltered().filter(t => !S.excludedIds.has(t.id)).forEach(t => lines.push([fmtDateShort(t.d), q(t.desc), q(t.cat), t.amount.toFixed(2).replace('.', ','), ...(S.hasAcct ? [q(t.acct)] : [])].join(';')));
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['\uFEFF' + lines.join('\r\n')], {type: 'text/csv;charset=utf-8'}));
   a.download = 'spese-filtrate.csv'; document.body.appendChild(a); a.click(); a.remove();
@@ -1568,6 +1629,11 @@ function saveCat() {
   $('#catDlg').close(); applyCats(); render(); toast(`Categoria “${c}” assegnata a ${plural(n, 'operazione', 'operazioni')}.`);
 }
 
+function openWgDialog() {
+  $('#wgBody').innerHTML = `<div class="wg-list">${WG_DEFS.map(w => `<label class="wg-item"><input type="checkbox" data-wg="${w.id}" ${S.widgets.has(w.id) ? 'checked' : ''}><span>${esc(w.name)}</span></label>`).join('')}</div>`;
+  $('#wgDlg').showModal();
+}
+
 function clearFilter(k) {
   const f = S.filters;
   if (k === 'date') { f.from = ''; f.to = ''; $('#fMonth').value = ''; $('#fWeeks').value = ''; }
@@ -1592,6 +1658,8 @@ document.addEventListener('click', e => {
     case 'clearov': S.overrides = {}; S.txOv = new Map(); store.set('estratto.overrides', {}); if (S.tx.length) { applyCats(); render(); } toast('Categorie personalizzate azzerate.'); break;
     case 'cat-cancel': $('#catDlg').close(); break;
     case 'cat-save': saveCat(); break;
+    case 'wg-open': openWgDialog(); break;
+    case 'wg-close': $('#wgDlg').close(); break;
     case 'openrail': $('#rail').classList.add('open'); $('#backdrop').hidden = false; break;
     case 'closerail': closeRail(); break;
     case 'tab': S.tab = v.tab; renderTabs(); renderPanel(); break;
@@ -1607,6 +1675,22 @@ document.addEventListener('click', e => {
     case 'cat': f.cats = (f.cats.size === 1 && f.cats.has(v.cat)) ? new Set(S.cats) : new Set([v.cat]); S.page = 0; render(); break;
     case 'merchant': f.q = v.q; f.qt = v.q.toLowerCase().split(/\s+/).filter(Boolean); $('#fQ').value = v.q; S.page = 0; render(); break;
     case 'edit': openCatDialog(+v.id); break;
+    case 'excl-toggle': {
+      const id = +v.id;
+      if (S.excludedIds.has(id)) S.excludedIds.delete(id);
+      else S.excludedIds.add(id);
+      store.set('estratto.excluded', [...S.excludedIds]);
+      render();
+      toast(S.excludedIds.has(id) ? 'Operazione esclusa dai calcoli.' : 'Operazione reinclusa nei calcoli.');
+      break;
+    }
+    case 'excl-reset': {
+      S.excludedIds.clear();
+      store.set('estratto.excluded', []);
+      render();
+      toast('Tutte le operazioni sono state reincluse.');
+      break;
+    }
     case 'sort': S.sort = {key: v.key, dir: S.sort.key === v.key ? -S.sort.dir : (v.key === 'date' || v.key === 'amount' ? -1 : 1)}; renderPanel(); break;
     case 'page': S.page += Number(v.d); renderPanel(); $('#tabs').scrollIntoView({block: 'start'}); break;
     case 'export': exportCSV(); break;
@@ -1626,6 +1710,12 @@ document.addEventListener('click', e => {
 
 /* campi dei filtri */
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+$('#wgDlg').addEventListener('change', e => {
+  const i = e.target.closest('input[data-wg]'); if (!i) return;
+  i.checked ? S.widgets.add(i.dataset.wg) : S.widgets.delete(i.dataset.wg);
+  store.set('estratto.widgets', [...S.widgets]);
+  if (S.tab === 'panoramica') renderPanel();
+});
 $('#fFrom').addEventListener('change', e => { S.filters.from = e.target.value; S.page = 0; render(); });
 $('#fTo').addEventListener('change', e => { S.filters.to = e.target.value; S.page = 0; render(); });
 $('#fMonth').addEventListener('change', e => {
