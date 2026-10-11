@@ -246,6 +246,7 @@ html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .btn-excl.excluded{color:var(--out);background:color-mix(in srgb,var(--out) 12%,transparent)}
 tr.is-excluded td{opacity:.45}
 tr.is-excluded td.desc, tr.is-excluded td.num{text-decoration:line-through}
+tr.sel-row-active td{background:color-mix(in srgb,var(--accent) 7%,transparent)}
 
 /* ---------- finestre ---------- */
 dialog{border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);padding:0;width:min(680px,94vw);max-height:90vh;box-shadow:0 24px 60px rgba(5,10,25,.35)}
@@ -422,6 +423,14 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
       <div class="fs-h"><h4>Pagamenti esclusi</h4></div>
       <p id="exclCount" style="font-size:12.5px;color:var(--ink2);margin:0 0 8px"></p>
       <button class="btn ghost sm" data-act="excl-reset">Reinclude tutti</button>
+    </div>
+    <div class="fs" id="selBox">
+      <div class="fs-h"><h4>Selezione pagamenti</h4></div>
+      <p id="selStatus" style="font-size:12.5px;color:var(--ink2);margin:0 0 8px">Filtro inattivo</p>
+      <div style="display:flex;gap:6px">
+        <button class="btn sm" id="btnSelToggle" data-act="sel-toggle">Attiva filtro</button>
+        <button class="btn ghost sm" data-act="tab" data-tab="selezione">Gestisci</button>
+      </div>
     </div>
   </aside>
 
@@ -799,6 +808,9 @@ const S = {
   tx: [], skipped: 0, bounds: null, cats: [], knownCats: new Set(), hasAcct: false, accts: [],
   overrides: store.get('estratto.overrides', {}), txOv: new Map(),
   excludedIds: new Set(store.get('estratto.excluded', [])),
+  selectedIds: new Set(store.get('estratto.selected', [])),
+  onlySelected: Boolean(store.get('estratto.onlySelected', false)),
+  selQuery: '', selPage: 0,
   widgets: new Set(store.get('estratto.widgets', WG_DEFS.map(w => w.id))),
   filters: null, tab: 'panoramica', sort: {key: 'date', dir: -1}, page: 0, pageSize: 50
 };
@@ -948,6 +960,7 @@ function showDash() {
    ===================================================================== */
 function passes(t, f, o = {}) {
   if (!o.skipExcluded && S.excludedIds.has(t.id)) return false;
+  if (!o.skipSelected && S.onlySelected && !S.selectedIds.has(t.id)) return false;
   if (!o.skipDate) { if (f.from && t.iso < f.from) return false; if (f.to && t.iso > f.to) return false; }
   if (f.type === 'out' && t.amount >= 0) return false;
   if (f.type === 'in' && t.amount < 0) return false;
@@ -1098,7 +1111,8 @@ const TABS = [
   ['categorie', 'Categorie', '<path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/>'],
   ['tendenze', 'Trend', '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>'],
   ['ricorrenti', 'Ricorrenti', '<path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/>'],
-  ['transazioni', 'Transazioni', '<path d="M7 7h13M16 3l4 4-4 4M17 17H4M8 13l-4 4 4 4"/>']
+  ['transazioni', 'Transazioni', '<path d="M7 7h13M16 3l4 4-4 4M17 17H4M8 13l-4 4 4 4"/>'],
+  ['selezione', 'Selezione', '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>']
 ];
 
 function render() {
@@ -1166,6 +1180,19 @@ function renderRail() {
   const nexcl = S.excludedIds.size;
   $('#exclBox').hidden = nexcl === 0;
   if (nexcl) $('#exclCount').textContent = `${plural(nexcl, 'pagamento escluso', 'pagamenti esclusi')} dall'analisi`;
+  const nsel = S.selectedIds.size;
+  const selStatus = $('#selStatus');
+  if (selStatus) {
+    selStatus.textContent = S.onlySelected
+      ? `${plural(nsel, 'operazione inclusa', 'operazioni incluse')} nell'analisi`
+      : (nsel ? `${nsel} selezionate (filtro non attivo)` : 'Nessuna operazione selezionata');
+  }
+  const bst = $('#btnSelToggle');
+  if (bst) {
+    bst.textContent = S.onlySelected ? 'Disattiva' : 'Attiva filtro';
+    bst.className = S.onlySelected ? 'btn primary sm' : 'btn sm';
+    bst.disabled = !S.onlySelected && nsel === 0;
+  }
 }
 
 function renderActive() {
@@ -1178,6 +1205,7 @@ function renderActive() {
   if (f.min != null || f.max != null) c('amt', `Importo ${f.min != null ? 'da ' + fmt0(f.min) : ''} ${f.max != null ? 'a ' + fmt0(f.max) : ''}`.trim());
   if (f.q) c('q', `Cerca: “${esc(f.q)}”`);
   if (S.excludedIds.size) chips.push(`<span class="achip">Escluse: ${nf.format(S.excludedIds.size)}<button data-act="excl-reset" aria-label="Reinclude tutte">✕</button></span>`);
+  if (S.onlySelected) chips.push(`<span class="achip">Solo selezionati: ${nf.format(S.selectedIds.size)}<button data-act="sel-toggle" aria-label="Disattiva filtro selezione">✕</button></span>`);
   $('#active').innerHTML = `<span class="resultline" aria-live="polite">${nf.format(D.F.length)} di ${nf.format(S.tx.length)} operazioni</span>` + chips.join('') + (chips.length ? '<button class="btn ghost sm" data-act="reset">Azzera tutto</button>' : '');
 }
 
@@ -1204,11 +1232,12 @@ function renderTabs() {
 }
 function renderPanel() {
   const P = $('#panel');
+  if (S.tab === 'selezione') { tabSelection(P); return; }
   if (!D.F.length) {
     P.innerHTML = `<div class="card empty"><h3>Nessuna operazione con questi filtri</h3><p>Allarga il periodo o togli qualche filtro per vedere di nuovo i dati.</p><button class="btn primary" data-act="reset">Azzera i filtri</button></div>`;
     return;
   }
-  ({panoramica: tabOverview, categorie: tabCategories, tendenze: tabTrends, ricorrenti: tabRecurring, transazioni: tabTransactions})[S.tab](P);
+  ({panoramica: tabOverview, categorie: tabCategories, tendenze: tabTrends, ricorrenti: tabRecurring, transazioni: tabTransactions, selezione: tabSelection})[S.tab](P);
 }
 
 /* =====================================================================
@@ -1555,13 +1584,104 @@ function tabTransactions(P) {
   const slice = rows.slice(S.page * S.pageSize, (S.page + 1) * S.pageSize);
   const th = (k, l, cls = '') => `<th class="${cls}" aria-sort="${S.sort.key === k ? (S.sort.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button class="thb" data-act="sort" data-key="${k}">${l}${S.sort.key === k ? (S.sort.dir > 0 ? ' ▲' : ' ▼') : ''}</button></th>`;
   P.innerHTML = `<section class="card"><div class="tools"><div><h3>Tutte le operazioni</h3><p class="hint" style="margin-bottom:0">Clicca una categoria per cambiarla: la correzione può valere per tutte le operazioni simili.</p></div><button class="btn" data-act="export">Esporta le operazioni filtrate</button></div>
-  <div class="tablewrap"><table><thead><tr>${th('date', 'Data')}${th('desc', 'Descrizione')}${th('cat', 'Categoria')}${S.hasAcct ? th('acct', 'Conto') : ''}${th('amount', 'Importo', 'num')}<th></th></tr></thead><tbody>
+  <div class="tablewrap"><table><thead><tr><th style="width:36px;text-align:center"><input type="checkbox" data-act="sel-page-all" title="Spunta tutte le visibili per la selezione"></th>${th('date', 'Data')}${th('desc', 'Descrizione')}${th('cat', 'Categoria')}${S.hasAcct ? th('acct', 'Conto') : ''}${th('amount', 'Importo', 'num')}<th></th></tr></thead><tbody>
   ${slice.map(t => {
     const isExcl = S.excludedIds.has(t.id);
-    return `<tr class="${isExcl ? 'is-excluded' : ''}"><td class="nowrap">${fmtDateShort(t.d)}</td><td class="desc" title="${esc(t.desc)}">${esc(t.merchant)}<small>${esc(t.desc)}</small></td><td><button class="pill" data-act="edit" data-id="${t.id}" title="Cambia categoria"><i class="dot" style="background:${catColor(t.cat)}"></i>${esc(t.cat)}</button></td>${S.hasAcct ? `<td class="nowrap">${esc(t.acct)}</td>` : ''}<td class="num ${t.amount > 0 ? 'pos' : 'neg'}">${t.amount > 0 ? '+' : '−'}${fmt(t.abs).replace(/^-/, '')}</td><td class="nowrap" style="text-align:right"><button class="btn-excl ${isExcl ? 'excluded' : ''}" data-act="excl-toggle" data-id="${t.id}" title="${isExcl ? 'Reincludi nei conteggi' : 'Escludi dai calcoli e totali'}">${isExcl ? '✕ Esclusa' : 'Escludi'}</button></td></tr>`;
+    const isSel = S.selectedIds.has(t.id);
+    return `<tr class="${isExcl ? 'is-excluded' : ''} ${isSel ? 'sel-row-active' : ''}"><td style="text-align:center" onclick="event.stopPropagation()"><input type="checkbox" data-act="sel-check" data-id="${t.id}" ${isSel ? 'checked' : ''} title="Seleziona operazione"></td><td class="nowrap">${fmtDateShort(t.d)}</td><td class="desc" title="${esc(t.desc)}">${esc(t.merchant)}<small>${esc(t.desc)}</small></td><td><button class="pill" data-act="edit" data-id="${t.id}" title="Cambia categoria"><i class="dot" style="background:${catColor(t.cat)}"></i>${esc(t.cat)}</button></td>${S.hasAcct ? `<td class="nowrap">${esc(t.acct)}</td>` : ''}<td class="num ${t.amount > 0 ? 'pos' : 'neg'}">${t.amount > 0 ? '+' : '−'}${fmt(t.abs).replace(/^-/, '')}</td><td class="nowrap" style="text-align:right"><button class="btn-excl ${isExcl ? 'excluded' : ''}" data-act="excl-toggle" data-id="${t.id}" title="${isExcl ? 'Reincludi nei conteggi' : 'Escludi dai calcoli e totali'}">${isExcl ? '✕ Esclusa' : 'Escludi'}</button></td></tr>`;
   }).join('')}</tbody></table></div>
   <div class="pager"><span>${rows.length ? `${S.page * S.pageSize + 1}–${Math.min(rows.length, (S.page + 1) * S.pageSize)} di ${nf.format(rows.length)}` : '0 operazioni'}</span>
   <button class="btn sm" data-act="page" data-d="-1" ${S.page === 0 ? 'disabled' : ''}>Precedente</button><button class="btn sm" data-act="page" data-d="1" ${S.page >= pages - 1 ? 'disabled' : ''}>Successiva</button></div></section>`;
+}
+
+function tabSelection(P) {
+  const allRows = S.tx.filter(t => passes(t, S.filters, {skipSelected: true, skipExcluded: true}));
+  const q = S.selQuery ? S.selQuery.toLowerCase() : '';
+  const rows = q ? allRows.filter(t => (t.hay + ' ' + t.cat.toLowerCase()).includes(q)) : allRows;
+
+  const selList = S.tx.filter(t => S.selectedIds.has(t.id) && !S.excludedIds.has(t.id));
+  const selExp = sum(selList.filter(t => t.amount < 0), t => t.abs);
+  const selInc = sum(selList.filter(t => t.amount > 0), t => t.abs);
+  const selNet = selInc - selExp;
+
+  const pages = Math.max(1, Math.ceil(rows.length / S.pageSize));
+  S.selPage = Math.min(S.selPage || 0, pages - 1);
+  const slice = rows.slice(S.selPage * S.pageSize, (S.selPage + 1) * S.pageSize);
+  const allSelectedInSlice = slice.length > 0 && slice.every(t => S.selectedIds.has(t.id));
+
+  P.innerHTML = `<div class="grid">
+  <section class="card">
+    <div class="card-h">
+      <div>
+        <h3>Selezione pagamenti da considerare</h3>
+        <p class="hint">Scegli quali operazioni considerare nell’analisi. Quando attivi il filtro, tutte le schermate (panoramica, categorie, grafici, totali) terranno conto solo dei pagamenti selezionati.</p>
+      </div>
+      <div>
+        <button class="btn ${S.onlySelected ? 'primary' : ''}" data-act="sel-toggle" style="font-weight:600">
+          ${S.onlySelected ? '✓ Filtro ATTIVO (solo selezionati)' : 'Attiva filtro per questi pagamenti'}
+        </button>
+      </div>
+    </div>
+    <div class="statline" style="margin-top:10px">
+      <div><div class="v">${nf.format(S.selectedIds.size)}</div><div class="l">operazioni scelte</div></div>
+      <div><div class="v" style="color:var(--out)">${fmt(selExp)}</div><div class="l">spese selezionate</div></div>
+      <div><div class="v" style="color:var(--in)">${fmt(selInc)}</div><div class="l">entrate selezionate</div></div>
+      <div><div class="v" style="color:${selNet >= 0 ? 'var(--in)' : 'var(--out)'}">${selNet >= 0 ? '+' : ''}${fmt(selNet)}</div><div class="l">saldo netto</div></div>
+    </div>
+    <div class="tools" style="flex-wrap:wrap;gap:8px;margin-top:12px">
+      <input type="search" id="selQ" placeholder="Cerca tra le operazioni..." value="${esc(S.selQuery || '')}" style="max-width:240px;padding:6px 10px;font-size:13px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)">
+      <button class="btn ghost sm" data-act="sel-all">Seleziona tutte (${nf.format(rows.length)})</button>
+      <button class="btn ghost sm" data-act="sel-none">Deseleziona tutte</button>
+      <button class="btn ghost sm" data-act="sel-only-out">Solo spese</button>
+      <button class="btn ghost sm" data-act="sel-only-in">Solo entrate</button>
+      <button class="btn ghost sm" data-act="sel-invert">Inverti selezione</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:36px;text-align:center"><input type="checkbox" data-act="sel-page-all" ${allSelectedInSlice ? 'checked' : ''} title="Seleziona/deseleziona visibili"></th>
+            <th>Data</th>
+            <th>Descrizione</th>
+            <th>Categoria</th>
+            ${S.hasAcct ? '<th>Conto</th>' : ''}
+            <th class="num">Importo</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${slice.map(t => {
+            const isSel = S.selectedIds.has(t.id);
+            return `<tr style="cursor:pointer" data-act="sel-row" data-id="${t.id}" class="${isSel ? 'sel-row-active' : ''}">
+              <td style="text-align:center" onclick="event.stopPropagation()"><input type="checkbox" data-act="sel-check" data-id="${t.id}" ${isSel ? 'checked' : ''}></td>
+              <td class="nowrap">${fmtDateShort(t.d)}</td>
+              <td class="desc" title="${esc(t.desc)}">${esc(t.merchant)}<small>${esc(t.desc)}</small></td>
+              <td><span class="pill"><i class="dot" style="background:${catColor(t.cat)}"></i>${esc(t.cat)}</span></td>
+              ${S.hasAcct ? `<td class="nowrap">${esc(t.acct)}</td>` : ''}
+              <td class="num ${t.amount > 0 ? 'pos' : 'neg'}">${t.amount > 0 ? '+' : '−'}${fmt(t.abs)}</td>
+            </tr>`;
+          }).join('') || '<tr><td colspan="6" class="empty">Nessuna operazione trovata.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+    <div class="pager">
+      <span>${rows.length ? `${S.selPage * S.pageSize + 1}–${Math.min(rows.length, (S.selPage + 1) * S.pageSize)} di ${nf.format(rows.length)}` : '0 operazioni'}</span>
+      <button class="btn sm" data-act="sel-page" data-d="-1" ${S.selPage === 0 ? 'disabled' : ''}>Precedente</button>
+      <button class="btn sm" data-act="sel-page" data-d="1" ${S.selPage >= pages - 1 ? 'disabled' : ''}>Successiva</button>
+    </div>
+  </section>
+  </div>`;
+
+  const sq = $('#selQ');
+  if (sq) {
+    sq.addEventListener('input', debounce(e => {
+      S.selQuery = e.target.value.trim();
+      S.selPage = 0;
+      renderPanel();
+    }, 150));
+  }
 }
 
 /* =====================================================================
@@ -1642,6 +1762,7 @@ function clearFilter(k) {
   if (k === 'accts') f.accts = new Set(S.accts);
   if (k === 'amt') { f.min = null; f.max = null; $('#fMin').value = ''; $('#fMax').value = ''; }
   if (k === 'q') { f.q = ''; f.qt = []; $('#fQ').value = ''; }
+  if (k === 'sel') { S.onlySelected = false; store.set('estratto.onlySelected', false); }
   S.page = 0; render();
 }
 
@@ -1663,7 +1784,7 @@ document.addEventListener('click', e => {
     case 'openrail': $('#rail').classList.add('open'); $('#backdrop').hidden = false; break;
     case 'closerail': closeRail(); break;
     case 'tab': S.tab = v.tab; renderTabs(); renderPanel(); break;
-    case 'reset': S.filters = defaultFilters(); $('#fQ').value = ''; $('#fMin').value = ''; $('#fMax').value = ''; $('#fWeeks').value = ''; S.page = 0; render(); break;
+    case 'reset': S.filters = defaultFilters(); S.onlySelected = false; store.set('estratto.onlySelected', false); $('#fQ').value = ''; $('#fMin').value = ''; $('#fMax').value = ''; $('#fWeeks').value = ''; S.page = 0; render(); break;
     case 'clear': clearFilter(v.k); break;
     case 'preset': { const [a1, b1] = presetRange(v.k); f.from = a1; f.to = b1; S.page = 0; render(); break; }
     case 'type': f.type = v.v; S.page = 0; render(); break;
@@ -1675,6 +1796,85 @@ document.addEventListener('click', e => {
     case 'cat': f.cats = (f.cats.size === 1 && f.cats.has(v.cat)) ? new Set(S.cats) : new Set([v.cat]); S.page = 0; render(); break;
     case 'merchant': f.q = v.q; f.qt = v.q.toLowerCase().split(/\s+/).filter(Boolean); $('#fQ').value = v.q; S.page = 0; render(); break;
     case 'edit': openCatDialog(+v.id); break;
+    case 'sel-toggle': {
+      if (S.selectedIds.size === 0 && !S.onlySelected) {
+        toast('Seleziona almeno un’operazione prima di attivare il filtro.');
+        return;
+      }
+      S.onlySelected = !S.onlySelected;
+      store.set('estratto.onlySelected', S.onlySelected);
+      render();
+      toast(S.onlySelected ? 'Filtro attivo: visualizzo solo le operazioni selezionate.' : 'Filtro disattivato: visualizzo tutte le operazioni.');
+      break;
+    }
+    case 'sel-check':
+    case 'sel-row': {
+      const id = +v.id;
+      if (S.selectedIds.has(id)) S.selectedIds.delete(id);
+      else S.selectedIds.add(id);
+      store.set('estratto.selected', [...S.selectedIds]);
+      if (S.onlySelected) render();
+      else { renderPanel(); renderRail(); }
+      break;
+    }
+    case 'sel-all': {
+      const allRows = S.tx.filter(t => passes(t, S.filters, {skipSelected: true, skipExcluded: true}));
+      allRows.forEach(t => S.selectedIds.add(t.id));
+      store.set('estratto.selected', [...S.selectedIds]);
+      if (S.onlySelected) render(); else { renderPanel(); renderRail(); }
+      toast(`Selezionate ${allRows.length} operazioni.`);
+      break;
+    }
+    case 'sel-none': {
+      S.selectedIds.clear();
+      store.set('estratto.selected', []);
+      if (S.onlySelected) { S.onlySelected = false; store.set('estratto.onlySelected', false); }
+      render();
+      toast('Tutte le operazioni sono state deselezionate.');
+      break;
+    }
+    case 'sel-only-out': {
+      S.selectedIds.clear();
+      S.tx.filter(t => t.amount < 0 && passes(t, S.filters, {skipSelected: true, skipExcluded: true}))
+        .forEach(t => S.selectedIds.add(t.id));
+      store.set('estratto.selected', [...S.selectedIds]);
+      if (S.onlySelected) render(); else { renderPanel(); renderRail(); }
+      toast(`Selezionate ${S.selectedIds.size} spese.`);
+      break;
+    }
+    case 'sel-only-in': {
+      S.selectedIds.clear();
+      S.tx.filter(t => t.amount > 0 && passes(t, S.filters, {skipSelected: true, skipExcluded: true}))
+        .forEach(t => S.selectedIds.add(t.id));
+      store.set('estratto.selected', [...S.selectedIds]);
+      if (S.onlySelected) render(); else { renderPanel(); renderRail(); }
+      toast(`Selezionate ${S.selectedIds.size} entrate.`);
+      break;
+    }
+    case 'sel-invert': {
+      const allRows = S.tx.filter(t => passes(t, S.filters, {skipSelected: true, skipExcluded: true}));
+      allRows.forEach(t => { if (S.selectedIds.has(t.id)) S.selectedIds.delete(t.id); else S.selectedIds.add(t.id); });
+      store.set('estratto.selected', [...S.selectedIds]);
+      if (S.onlySelected) render(); else { renderPanel(); renderRail(); }
+      break;
+    }
+    case 'sel-page-all': {
+      const allRows = S.tx.filter(t => passes(t, S.filters, {skipSelected: true, skipExcluded: true}));
+      const q = S.selQuery ? S.selQuery.toLowerCase() : '';
+      const rows = q ? allRows.filter(t => (t.hay + ' ' + t.cat.toLowerCase()).includes(q)) : allRows;
+      const pageIdx = S.tab === 'selezione' ? (S.selPage || 0) : S.page;
+      const slice = rows.slice(pageIdx * S.pageSize, (pageIdx + 1) * S.pageSize);
+      const allInSlice = slice.every(t => S.selectedIds.has(t.id));
+      slice.forEach(t => { if (allInSlice) S.selectedIds.delete(t.id); else S.selectedIds.add(t.id); });
+      store.set('estratto.selected', [...S.selectedIds]);
+      if (S.onlySelected) render(); else { renderPanel(); renderRail(); }
+      break;
+    }
+    case 'sel-page': {
+      S.selPage = (S.selPage || 0) + Number(v.d);
+      renderPanel();
+      break;
+    }
     case 'excl-toggle': {
       const id = +v.id;
       if (S.excludedIds.has(id)) S.excludedIds.delete(id);
