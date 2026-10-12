@@ -237,6 +237,22 @@ tbody tr:hover td{background:var(--hover)}
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 @media print{.side,.rail,#backdrop,#toast,.top .btn,.top .spacer{display:none!important}.top{position:static}.dash{display:block}.dashing .brand{border:0}.card{break-inside:avoid}}
 
+/* ---------- portafogli ---------- */
+.wkind-current{--wk-c:#2D5BE3} .wkind-savings{--wk-c:#198A58} .wkind-investment{--wk-c:#A15BF0} .wkind-other{--wk-c:#778195}
+.wallet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin:14px 0}
+.wallet-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;border-top:4px solid var(--wk-c,var(--accent));min-width:0}
+.wallet-card .wk-label{font-size:12.5px;color:var(--ink2);margin-bottom:4px;display:flex;align-items:center;gap:7px}
+.wallet-card .wk-label i{width:9px;height:9px;border-radius:50%;background:var(--wk-c,var(--accent));display:inline-block;flex:none}
+.wallet-card .wk-bal{font:700 clamp(18px,2.5vw,26px)/1.2 var(--f-display);letter-spacing:-.02em;margin:4px 0 2px}
+.wallet-card .wk-sub{font-size:12px;color:var(--ink3)}
+.inv-live{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;background:color-mix(in srgb,var(--in) 14%,transparent);color:var(--in);border-radius:99px;font-size:11.5px;font-weight:600;margin-left:8px}
+.inv-live::before{content:'';width:6px;height:6px;background:var(--in);border-radius:50%;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.inv-stale .inv-live{background:color-mix(in srgb,var(--ink3) 14%,transparent);color:var(--ink3)}
+.inv-stale .inv-live::before{background:var(--ink3);animation:none}
+.wk-refresh-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:12.5px;color:var(--ink3)}
+
+
 /* ---------- widget home + escludi ---------- */
 .wg-list{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin:10px 0 6px}
 .wg-item{display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:9px;cursor:pointer;font-size:13px}
@@ -851,10 +867,13 @@ async function pullRevolut(silent = false) {
     store.set('estratto.cache_csv', text);
     loadText(text, 'revolut.csv');
     if (silent) toast('Dati Revolut sincronizzati.');
+    // Avvia (o riavvia) il polling dei portafogli dopo un collegamento riuscito
+    startWalletPolling();
   } catch (e) {
     if (!silent) toast('Revolut: ' + e.message);
   }
 }
+
 function loadText(text, name) {
   const first = text.split(/\r?\n/, 1)[0] || '';
   let delim; const sep = first.match(/^sep=(.)$/i);
@@ -1112,8 +1131,10 @@ const TABS = [
   ['tendenze', 'Trend', '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>'],
   ['ricorrenti', 'Ricorrenti', '<path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/>'],
   ['transazioni', 'Transazioni', '<path d="M7 7h13M16 3l4 4-4 4M17 17H4M8 13l-4 4 4 4"/>'],
+  ['portafogli', 'Portafogli', '<circle cx="12" cy="12" r="9"/><path d="M15 9a3 3 0 1 1-6 0"/><path d="M12 3v3m0 12v3m9-9h-3M6 12H3"/>'],
   ['selezione', 'Selezione', '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>']
 ];
+
 
 function render() {
   if (!S.tx.length) return;
@@ -1233,6 +1254,7 @@ function renderTabs() {
 function renderPanel() {
   const P = $('#panel');
   if (S.tab === 'selezione') { tabSelection(P); return; }
+  if (S.tab === 'portafogli') { tabWallets(P); return; }
   if (!D.F.length) {
     P.innerHTML = `<div class="card empty"><h3>Nessuna operazione con questi filtri</h3><p>Allarga il periodo o togli qualche filtro per vedere di nuovo i dati.</p><button class="btn primary" data-act="reset">Azzera i filtri</button></div>`;
     return;
@@ -1594,10 +1616,142 @@ function tabTransactions(P) {
   <button class="btn sm" data-act="page" data-d="-1" ${S.page === 0 ? 'disabled' : ''}>Precedente</button><button class="btn sm" data-act="page" data-d="1" ${S.page >= pages - 1 ? 'disabled' : ''}>Successiva</button></div></section>`;
 }
 
+/* =====================================================================
+   Portafogli Revolut – recupero e rendering
+   ===================================================================== */
+const WK = {
+  data: null, fetchedAt: null, loading: false, error: null,
+  historyEur: [], pollTimer: null
+};
+const WK_COLORS = {current:'#2D5BE3', savings:'#198A58', investment:'#A15BF0', other:'#778195'};
+
+async function fetchWallets(silent) {
+  const tk = store.get('estratto.token', '');
+  if (!tk) return;
+  WK.loading = true; WK.error = null;
+  try {
+    const r = await fetch('/api/wallets', {headers: {Authorization: 'Bearer ' + tk}});
+    if (r.status === 401) { WK.error = 'Token non valido'; WK.loading = false; return; }
+    if (!r.ok) { WK.error = (await r.text()).slice(0, 140); WK.loading = false; return; }
+    const data = await r.json();
+    WK.data = data; WK.fetchedAt = new Date();
+    const invW = data.wallets.find(w => w.kind === 'investment');
+    WK.historyEur.push({ts: Date.now(), total: data.totalEur, invBalance: invW ? invW.balance : null});
+    if (WK.historyEur.length > 200) WK.historyEur.shift();
+    if (S.tab === 'portafogli') renderPanel();
+    if (silent) toast('Portafogli aggiornati.');
+  } catch (e) { WK.error = e.message; }
+  WK.loading = false;
+}
+
+function startWalletPolling() {
+  if (WK.pollTimer) clearInterval(WK.pollTimer);
+  fetchWallets(false);
+  WK.pollTimer = setInterval(() => fetchWallets(true), 60000);
+}
+
+function drawWalletHistoryChart(host) {
+  const hist = WK.historyEur.filter(p => p.invBalance != null);
+  if (hist.length < 2) {
+    host.innerHTML = '<div class="empty" style="padding:28px 16px;color:var(--ink2)">Non ancora abbastanza campioni. Il grafico si aggiornerà ogni minuto automaticamente.</div>';
+    return;
+  }
+  const w = W(host), h = 240, m = {t: 14, r: 14, b: 34, l: 66}, iw = w - m.l - m.r, ih = h - m.t - m.b;
+  const vals = hist.map(p => p.invBalance);
+  const sc = niceScale(Math.min(...vals) * 0.998, Math.max(...vals) * 1.002, 4);
+  const xi = i => m.l + (hist.length <= 1 ? iw / 2 : i / (hist.length - 1) * iw);
+  const yv = v => m.t + ih - (v - sc.lo) / (sc.hi - sc.lo) * ih;
+  let s = svgOpen(w, h, 'Andamento saldo investimenti in tempo reale');
+  s += sc.ticks.map(v => `<line class="gridline" x1="${m.l}" x2="${w - m.r}" y1="${yv(v).toFixed(1)}" y2="${yv(v).toFixed(1)}"/><text x="${m.l - 8}" y="${(yv(v) + 4).toFixed(1)}" text-anchor="end">${compact(v)}</text>`).join('');
+  const ptsList = hist.map((p, i) => `${xi(i).toFixed(1)},${yv(p.invBalance).toFixed(1)}`);
+  s += `<path d="M${ptsList.join(' L')} L${xi(hist.length-1).toFixed(1)},${m.t+ih} L${xi(0).toFixed(1)},${m.t+ih} Z" fill="#A15BF0" opacity=".10"/>`;
+  s += `<polyline points="${ptsList.join(' ')}" fill="none" stroke="#A15BF0" stroke-width="2" stroke-linejoin="round"/>`;
+  const step = Math.max(1, Math.ceil(hist.length / 6));
+  for (let i = 0; i < hist.length; i += step) {
+    const d = new Date(hist[i].ts);
+    s += `<text x="${xi(i).toFixed(1)}" y="${h - 10}" text-anchor="middle">${pad(d.getHours())}:${pad(d.getMinutes())}</text>`;
+  }
+  for (let i = 0; i < hist.length; i++) {
+    const p = hist[i], d = new Date(p.ts);
+    const tip = `<b>${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}</b><br>Investimenti ${fmt(p.invBalance)}<br>Patrimonio ${fmt(p.total)}`;
+    const bw = Math.max(4, iw / hist.length);
+    s += `<rect class="hit" x="${(xi(i) - bw/2).toFixed(1)}" y="${m.t}" width="${bw.toFixed(1)}" height="${ih}" ${tipAttr(tip)}/>`;
+  }
+  const li = hist.length - 1;
+  s += `<circle cx="${xi(li).toFixed(1)}" cy="${yv(hist[li].invBalance).toFixed(1)}" r="4" fill="#A15BF0" stroke="var(--surface)" stroke-width="2"/>`;
+  host.innerHTML = s + '</svg>';
+}
+
+function tabWallets(P) {
+  const tk = store.get('estratto.token', '');
+  if (!tk) {
+    P.innerHTML = `<div class="card empty"><h3>Collegati a Revolut</h3><p>Per vedere i portafogli devi prima collegare Revolut usando il pulsante in alto.</p></div>`;
+    return;
+  }
+  const staleSec = WK.fetchedAt ? (Date.now() - WK.fetchedAt.getTime()) / 1000 : Infinity;
+  const isStale = staleSec > 70;
+  const fetchedStr = WK.fetchedAt ? `${pad(WK.fetchedAt.getHours())}:${pad(WK.fetchedAt.getMinutes())}:${pad(WK.fetchedAt.getSeconds())}` : '—';
+  const wallets = WK.data ? WK.data.wallets : [];
+  const totalEur = WK.data ? WK.data.totalEur : null;
+  const invW = wallets.find(w => w.kind === 'investment');
+  const savW = wallets.find(w => w.kind === 'savings');
+  const liveChip = `<span class="inv-live${isStale ? ' inv-stale' : ''}" title="${isStale ? 'Dati non aggiornati' : 'Dati in tempo reale'}">● LIVE</span>`;
+
+  const wCards = wallets.length ? wallets.map(w => {
+    const balStr = w.balance != null ? (w.currency !== 'EUR' ? w.currency + '\u00a0' : '€\u00a0') + nf.format(Math.round(w.balance * 100) / 100) : '—';
+    return `<div class="wallet-card wkind-${w.kind}"><div class="wk-label"><i></i>${esc(w.label)}</div><div class="wk-bal">${balStr}</div><div class="wk-sub">${w.kind === 'investment' ? 'Grafico in tempo reale ↓' : w.transactionCount ? nf.format(w.transactionCount) + ' mov. ultimi 12 mesi' : ''}</div></div>`;
+  }).join('') : '<div class="empty" style="padding:20px 0">Nessun portafoglio. Riprova tra qualche secondo.</div>';
+
+  P.innerHTML = `<div class="grid">
+  <section class="card" style="grid-column:span 12">
+    <div class="card-h">
+      <div><h3>Portafogli Revolut${liveChip}</h3><p class="hint">Aggiornamento automatico ogni 60 secondi.</p></div>
+      <div class="wk-refresh-row"><span>Agg. ${fetchedStr}</span><button class="btn sm" data-act="wk-refresh">↻ Aggiorna ora</button></div>
+    </div>
+    ${WK.error ? `<p class="warn">Errore: ${esc(WK.error)}</p>` : ''}
+    ${WK.loading && !WK.data ? '<p style="color:var(--ink2);font-size:13px">Caricamento…</p>' : ''}
+    <div class="wallet-grid">${wCards}</div>
+    ${totalEur != null ? `<p style="font-size:13px;color:var(--ink2);margin-top:8px">Patrimonio totale in EUR: <b style="color:var(--ink)">${fmt(totalEur)}</b></p>` : ''}
+  </section>
+
+  ${wallets.length ? `<section class="card s6">
+    <h3>Distribuzione patrimonio</h3>
+    <div class="dwrap"><div id="cWalletPie"></div>
+    <div class="rows plain">${wallets.filter(w => w.balance != null && w.balance > 0 && w.currency === 'EUR').map(w =>
+      `<button class="rw" style="cursor:default"><span class="nm"><i class="dot" style="background:${WK_COLORS[w.kind]||'var(--accent)'}"></i><span>${esc(w.label)}</span></span><span class="bar"><i style="width:${totalEur ? (w.balance/totalEur*100).toFixed(1) : 0}%;background:${WK_COLORS[w.kind]||'var(--accent)'}"></i></span><span class="val">${fmt(w.balance)}</span></button>`
+    ).join('')}</div></div>
+  </section>` : ''}
+
+  ${invW != null ? `<section class="card ${wallets.length ? 's6' : ''}">
+    <div class="card-h">
+      <div><h3>Investimenti – andamento live${liveChip}</h3><p class="hint">Un campione ogni minuto in questa sessione.</p></div>
+      <b style="font-size:20px;font-family:var(--f-display);color:${(invW.balance||0) >= 0 ? 'var(--in)' : 'var(--out)'}">${invW.balance != null ? fmt(invW.balance) : '—'}</b>
+    </div>
+    <div id="cInvChart"></div>
+  </section>` : ''}
+
+  ${savW != null ? `<section class="card s6">
+    <h3>Instant Savings</h3><p class="hint">Saldo del portafoglio risparmio istantaneo.</p>
+    <div class="statline" style="margin-top:14px">
+      <div><div class="v" style="color:var(--in)">${savW.balance != null ? fmt(savW.balance) : '—'}</div><div class="l">saldo attuale</div></div>
+      <div><div class="v">${esc(savW.currency)}</div><div class="l">valuta</div></div>
+    </div>
+  </section>` : ''}
+  </div>`;
+
+  if (wallets.length && $('#cWalletPie')) {
+    const pieItems = wallets.filter(w => w.balance != null && w.balance > 0 && w.currency === 'EUR');
+    const t = pieItems.reduce((s, w) => s + w.balance, 0);
+    drawDonut($('#cWalletPie'), pieItems.map(w => ({cat: w.label, sum: w.balance, n: 1})), t, 'patrimonio EUR');
+  }
+  if (invW != null && $('#cInvChart')) drawWalletHistoryChart($('#cInvChart'));
+}
+
 function tabSelection(P) {
   const allRows = S.tx.filter(t => passes(t, S.filters, {skipSelected: true, skipExcluded: true}));
   const q = S.selQuery ? S.selQuery.toLowerCase() : '';
   const rows = q ? allRows.filter(t => (t.hay + ' ' + t.cat.toLowerCase()).includes(q)) : allRows;
+
 
   const selList = S.tx.filter(t => S.selectedIds.has(t.id) && !S.excludedIds.has(t.id));
   const selExp = sum(selList.filter(t => t.amount < 0), t => t.abs);
@@ -1895,6 +2049,7 @@ document.addEventListener('click', e => {
     case 'page': S.page += Number(v.d); renderPanel(); $('#tabs').scrollIntoView({block: 'start'}); break;
     case 'export': exportCSV(); break;
     case 'revolut': pullRevolut(); break;
+    case 'wk-refresh': fetchWallets(false).then(() => { if (S.tab === 'portafogli') renderPanel(); }); break;
     case 'disconnect-revolut': {
       if (confirm('Vuoi disconnettere Revolut da questo dispositivo e cancellare i dati memorizzati in locale?')) {
         store.set('estratto.token', '');
@@ -1985,7 +2140,10 @@ if (savedToken) {
   } else {
     pullRevolut(false);
   }
+  // Avvia il polling dei portafogli (saldi, savings, investimenti)
+  startWalletPolling();
 }
+
 
 /* =====================================================================
    Dati di esempio (generati al volo, nessun file esterno)
