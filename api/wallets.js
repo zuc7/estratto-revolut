@@ -46,7 +46,9 @@ module.exports = async (req, res) => {
     const from = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
 
     const wallets = await Promise.all(accounts.map(async acct => {
-      const rid = acct.resource_id || acct.account_id?.iban || uid;
+      // Enable Banking identifica ogni conto con `uid`; l'IBAN non è l'ID
+      // richiesto dagli endpoint /accounts/{account_id}.
+      const rid = acct.uid || acct.resource_id || uid;
       const meta = walletMeta(acct);
       const currency = (acct.currency || acct.account_id?.currency || 'EUR').toUpperCase();
 
