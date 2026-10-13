@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Estratto – analisi delle spese da CSV</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -129,11 +130,14 @@ input:focus,select:focus{border-color:var(--accent)}
 
 .side{position:sticky;top:68px;height:calc(100vh - 68px);display:flex;flex-direction:column;gap:6px;padding:20px 16px;border-right:1px solid var(--line);background:var(--surface);overflow:auto}
 .tabs{display:flex;flex-direction:column;gap:6px}
-.tab{display:flex;align-items:center;gap:12px;width:100%;border:1px solid transparent;background:transparent;padding:10px 12px;border-radius:10px;color:var(--ink);text-align:left;white-space:nowrap}
+.tab{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:42px;border:1px solid transparent;background:transparent;padding:9px 12px;border-radius:10px;color:var(--ink);text-align:left;white-space:nowrap}
 .tab svg{width:19px;height:19px;flex:none;color:var(--ink2)}
 .tab:hover{background:var(--hover)}
 .tab[aria-selected=true]{background:var(--hover);border-color:color-mix(in srgb,var(--accent) 35%,transparent);color:var(--accent);font-weight:600}
 .tab[aria-selected=true] svg{color:var(--accent)}
+.side-settings{margin-top:12px;padding-top:14px;border-top:1px solid var(--line);border-radius:0;color:var(--ink2)}
+.side-settings:hover{color:var(--ink)}
+.side-settings svg{color:var(--ink3)}
 .side-foot{margin-top:auto;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:12.5px;color:var(--ink2)}
 .side-foot b{display:flex;gap:7px;align-items:center;color:var(--in);font-weight:500;margin-bottom:4px}
 .side-foot svg{width:16px;height:16px}
@@ -292,8 +296,9 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
   .side{position:sticky;top:58px;z-index:25;height:auto;flex-direction:row;align-items:center;padding:6px 12px;border-right:0;border-bottom:1px solid var(--line);background:var(--surface);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
   .side::-webkit-scrollbar{display:none}
   .tabs{flex-direction:row;flex-shrink:0;gap:4px}
-  .tab{width:auto;flex-shrink:0;padding:7px 10px;font-size:13px;border-radius:8px}
+  .tab{width:auto;min-height:38px;flex-shrink:0;padding:7px 10px;font-size:13px;border-radius:8px}
   .tab svg{width:16px;height:16px}
+  .side-settings{margin:0 0 0 4px;padding:7px 10px;border:1px solid transparent;border-left:1px solid var(--line);border-radius:8px}
   .side-foot{display:none}
   .dashing .top{padding-left:14px}
   .dashing .brand{width:auto;padding:0;border-right:0}
@@ -452,7 +457,7 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
 
   <aside class="side" aria-label="Navigazione">
     <nav class="tabs" id="tabs" role="tablist" aria-label="Sezioni"></nav>
-    <button class="tab" data-act="cols"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Impostazioni</button>
+    <button class="tab side-settings" data-act="cols" aria-label="Impostazioni" title="Impostazioni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Impostazioni</button>
     <div class="side-foot" id="sideNote"></div>
   </aside>
   <div id="main">
@@ -1650,6 +1655,43 @@ function startWalletPolling() {
   WK.pollTimer = setInterval(() => fetchWallets(true), 60000);
 }
 
+function savingsFromCsv() {
+  const months = new Map();
+  for (const t of S.tx) {
+    const desc = t.desc.toLowerCase();
+    const delta = /to instant access savings/.test(desc) ? Math.abs(t.amount)
+      : /from instant access savings/.test(desc) ? -Math.abs(t.amount) : 0;
+    if (!delta) continue;
+    const m = getOr(months, t.ym, () => ({key: t.ym, net: 0, deposits: 0, withdrawals: 0, count: 0}));
+    m.net += delta;
+    if (delta > 0) m.deposits += delta; else m.withdrawals -= delta;
+    m.count++;
+  }
+  let balance = 0;
+  const history = [...months.values()].sort((a, b) => a.key.localeCompare(b.key)).map(m => ({...m, balance: balance += m.net}));
+  return {history, deposits: sum(history, m => m.deposits), withdrawals: sum(history, m => m.withdrawals), count: sum(history, m => m.count), net: balance};
+}
+
+function drawSavingsHistory(host, history) {
+  if (!history.length) return;
+  const w = W(host), h = 210, m = {t: 14, r: 14, b: 32, l: 66}, iw = w - m.l - m.r, ih = h - m.t - m.b;
+  const vals = history.map(p => p.balance), lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
+  const sc = niceScale(lo, hi, 4), monthIndex = key => { const [yr, mo] = key.split('-').map(Number); return yr * 12 + mo - 1; };
+  const firstMonth = monthIndex(history[0].key), lastMonth = monthIndex(history[history.length - 1].key);
+  const x = i => m.l + (firstMonth === lastMonth ? iw / 2 : (monthIndex(history[i].key) - firstMonth) / (lastMonth - firstMonth) * iw);
+  const y = v => m.t + ih - (v - sc.lo) / (sc.hi - sc.lo) * ih;
+  let s = svgOpen(w, h, 'Andamento netto dei trasferimenti Instant Savings');
+  s += sc.ticks.map(v => `<line class="gridline" x1="${m.l}" x2="${w-m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${m.l-8}" y="${(y(v)+4).toFixed(1)}" text-anchor="end">${compact(v)}</text>`).join('');
+  const pts = history.map((p, i) => `${x(i).toFixed(1)},${y(p.balance).toFixed(1)}`);
+  s += `<polyline points="${pts.join(' ')}" fill="none" stroke="${WK_COLORS.savings}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  history.forEach((p, i) => {
+    const [yr, mo] = p.key.split('-');
+    s += `<circle cx="${x(i).toFixed(1)}" cy="${y(p.balance).toFixed(1)}" r="3.5" fill="${WK_COLORS.savings}"><title>${MESI_L[Number(mo)-1]} ${yr}: netto ${fmt(p.net)}, cumulato ${fmt(p.balance)}</title></circle>`;
+    if (i === 0 || i === history.length - 1 || history.length < 8) s += `<text x="${x(i).toFixed(1)}" y="${h-9}" text-anchor="middle">${MESI[Number(mo)-1]} ${yr.slice(-2)}</text>`;
+  });
+  host.innerHTML = s + '</svg>';
+}
+
 function drawWalletHistoryChart(host) {
   const hist = WK.historyEur.filter(p => p.invBalance != null);
   if (hist.length < 2) {
@@ -1695,6 +1737,7 @@ function tabWallets(P) {
   const totalEur = WK.data ? WK.data.totalEur : null;
   const invW = wallets.find(w => w.kind === 'investment');
   const savW = wallets.find(w => w.kind === 'savings');
+  const savingsCsv = savingsFromCsv();
   const liveChip = `<span class="inv-live${isStale ? ' inv-stale' : ''}" title="${isStale ? 'Dati non aggiornati' : 'Dati in tempo reale'}">● LIVE</span>`;
 
   const wCards = wallets.length ? wallets.map(w => {
@@ -1737,6 +1780,16 @@ function tabWallets(P) {
       <div><div class="v">${esc(savW.currency)}</div><div class="l">valuta</div></div>
     </div>
   </section>` : ''}
+  <section class="card" style="grid-column:span 12">
+    <h3>Instant Savings · movimenti dal CSV</h3>
+    <p class="hint">Trasferimenti riconosciuti nelle descrizioni “To/From Instant Access Savings”. Il cumulato parte dal primo movimento nel file e non rappresenta il saldo totale del vault.</p>
+    ${savingsCsv.count ? `<div class="statline">
+      <div><div class="v">${fmt(savingsCsv.net)}</div><div class="l">netto cumulato nel file</div></div>
+      <div><div class="v pos">${fmt(savingsCsv.deposits)}</div><div class="l">versamenti riconosciuti</div></div>
+      <div><div class="v neg">${fmt(savingsCsv.withdrawals)}</div><div class="l">prelievi riconosciuti</div></div>
+      <div><div class="v">${nf.format(savingsCsv.count)}</div><div class="l">movimenti · ${fmtDate(S.bounds.min)} – ${fmtDate(S.bounds.max)}</div></div>
+    </div><div id="cSavingsChart"></div>` : '<div class="empty" style="padding:20px 0">Nessun trasferimento Instant Savings trovato nel CSV caricato.</div>'}
+  </section>
   </div>`;
 
   if (wallets.length && $('#cWalletPie')) {
@@ -1745,6 +1798,7 @@ function tabWallets(P) {
     drawDonut($('#cWalletPie'), pieItems.map(w => ({cat: w.label, sum: w.balance, n: 1})), t, 'patrimonio EUR');
   }
   if (invW != null && $('#cInvChart')) drawWalletHistoryChart($('#cInvChart'));
+  if (savingsCsv.count && $('#cSavingsChart')) drawSavingsHistory($('#cSavingsChart'), savingsCsv.history);
 }
 
 function tabSelection(P) {
