@@ -1828,12 +1828,43 @@ function drawWalletHistoryChart(host) {
   host.innerHTML = s + '</svg>';
 }
 
-function tabWallets(P) {
-  const tk = store.get('estratto.token', '');
-  if (!tk) {
-    P.innerHTML = `<div class="card empty"><h3>Collegati a Revolut</h3><p>Per vedere i portafogli devi prima collegare Revolut usando il pulsante in alto.</p></div>`;
+let ETF_SIM = {data: null, loading: false, error: null};
+async function loadEtfSimulation() {
+  if (ETF_SIM.loading) return;
+  ETF_SIM.loading = true; ETF_SIM.error = null;
+  const host = $('#cEtfChart');
+  if (host) host.innerHTML = '<div class="empty" style="padding:24px">Caricamento quotazioni ETF…</div>';
+  try {
+    const r = await fetch('/api/etf-today');
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'Quotazioni momentaneamente non disponibili.'); }
+    ETF_SIM.data = await r.json();
+  } catch (e) { ETF_SIM.error = e.message; }
+  ETF_SIM.loading = false;
+  if (S.tab === 'portafogli') renderPanel();
+}
+
+function drawEtfSimulation(host, data) {
+  if (!data?.points?.length) {
+    host.innerHTML = `<div class="empty" style="padding:24px">${esc(ETF_SIM.error || 'Nessun dato di mercato disponibile oggi.')}</div>`;
     return;
   }
+  const pts = data.points, w = W(host), h = 240, m = {t:14,r:14,b:34,l:66}, iw=w-m.l-m.r, ih=h-m.t-m.b;
+  const vals = pts.map(p => p.value), lo=Math.min(...vals,50), hi=Math.max(...vals,50), sc=niceScale(lo,hi,4);
+  const x=i=>m.l+(pts.length<2?iw/2:i/(pts.length-1)*iw), y=v=>m.t+ih-(v-sc.lo)/(sc.hi-sc.lo)*ih;
+  let s=svgOpen(w,h,'Simulazione di 50 euro investiti oggi in un paniere di ETF');
+  s+=sc.ticks.map(v=>`<line class="gridline" x1="${m.l}" x2="${w-m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${m.l-8}" y="${(y(v)+4).toFixed(1)}" text-anchor="end">${compact(v)}</text>`).join('');
+  s+=`<line class="gridline" x1="${m.l}" x2="${w-m.r}" y1="${y(50).toFixed(1)}" y2="${y(50).toFixed(1)}" stroke-dasharray="4 4"/>`;
+  const coords=pts.map((p,i)=>`${x(i).toFixed(1)},${y(p.value).toFixed(1)}`);
+  s+=`<polyline points="${coords.join(' ')}" fill="none" stroke="#A15BF0" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  const step=Math.max(1,Math.ceil(pts.length/6));
+  for(let i=0;i<pts.length;i+=step){const d=new Date(pts[i].ts);s+=`<text x="${x(i).toFixed(1)}" y="${h-10}" text-anchor="middle">${pad(d.getHours())}:${pad(d.getMinutes())}</text>`;}
+  const last=pts[pts.length-1], ch=last.value-50;
+  s+=`<circle cx="${x(pts.length-1).toFixed(1)}" cy="${y(last.value).toFixed(1)}" r="4" fill="#A15BF0"/>`;
+  host.innerHTML=`<div class="statline" style="margin:12px 0"><div><div class="v">${fmt(last.value)}</div><div class="l">valore simulato</div></div><div><div class="v ${ch>=0?'pos':'neg'}">${ch>=0?'+':''}${fmt(ch)}</div><div class="l">variazione su 50 €</div></div><div><div class="v">${esc(data.asOf || '—')}</div><div class="l">ultimo aggiornamento</div></div></div>`+s+'</svg>';
+}
+
+function tabWallets(P) {
+  const tk = store.get('estratto.token', '');
   const staleSec = WK.fetchedAt ? (Date.now() - WK.fetchedAt.getTime()) / 1000 : Infinity;
   const isStale = staleSec > 70;
   const fetchedStr = WK.fetchedAt ? `${pad(WK.fetchedAt.getHours())}:${pad(WK.fetchedAt.getMinutes())}:${pad(WK.fetchedAt.getSeconds())}` : '—';
@@ -1850,6 +1881,12 @@ function tabWallets(P) {
   }).join('') : '<div class="empty" style="padding:20px 0">Nessun portafoglio. Riprova tra qualche secondo.</div>';
 
   P.innerHTML = `<div class="grid">
+  <section class="card" style="grid-column:span 12">
+    <div class="card-h"><div><h3>ETF · simulazione di oggi</h3><p class="hint">Simulazione indipendente dai tuoi dati: 50 € investiti all’apertura del mercato in parti uguali su VWCE, SXR8 ed EUNL. Quotazioni intraday indicative.</p></div><button class="btn sm" data-act="etf-refresh">Aggiorna</button></div>
+    <div id="cEtfChart">${ETF_SIM.loading ? '<div class="empty" style="padding:24px">Caricamento quotazioni ETF…</div>' : ''}</div>
+  </section>
+  ${!tk ? '<section class="card empty" style="grid-column:span 12"><h3>Collega Revolut</h3><p>Collega Revolut per visualizzare qui i saldi e gli altri dati dei tuoi portafogli.</p></section>' : ''}
+  ${tk ? `
   <section class="card" style="grid-column:span 12">
     <div class="card-h">
       <div><h3>Portafogli Revolut${liveChip}</h3><p class="hint">Aggiornamento automatico ogni 60 secondi.</p></div>
@@ -1894,6 +1931,7 @@ function tabWallets(P) {
       <div><div class="v">${nf.format(savingsCsv.count)}</div><div class="l">movimenti · ${fmtDate(S.bounds.min)} – ${fmtDate(S.bounds.max)}</div></div>
     </div><div id="cSavingsChart"></div>` : '<div class="empty" style="padding:20px 0">Nessun trasferimento Instant Savings trovato nel CSV caricato.</div>'}
   </section>
+  ` : ''}
   </div>`;
 
   if (wallets.length && $('#cWalletPie')) {
@@ -1903,6 +1941,9 @@ function tabWallets(P) {
   }
   if (invW != null && $('#cInvChart')) drawWalletHistoryChart($('#cInvChart'));
   if (savingsCsv.count && $('#cSavingsChart')) drawSavingsHistory($('#cSavingsChart'), savingsCsv.history);
+  if (!ETF_SIM.data && !ETF_SIM.loading && !ETF_SIM.error) loadEtfSimulation();
+  else if (ETF_SIM.data && $('#cEtfChart')) drawEtfSimulation($('#cEtfChart'), ETF_SIM.data);
+  else if (ETF_SIM.error && $('#cEtfChart')) drawEtfSimulation($('#cEtfChart'), null);
 }
 
 function tabSelection(P) {
@@ -2217,6 +2258,7 @@ document.addEventListener('click', e => {
     case 'export': exportCSV(); break;
     case 'revolut': pullRevolut(); break;
     case 'wk-refresh': fetchWallets(false).then(() => { if (S.tab === 'portafogli') renderPanel(); }); break;
+    case 'etf-refresh': ETF_SIM.data = null; ETF_SIM.error = null; ETF_SIM.loading = false; loadEtfSimulation(); break;
     case 'disconnect-revolut': {
       if (confirm('Vuoi disconnettere Revolut da questo dispositivo e cancellare i dati memorizzati in locale?')) {
         store.set('estratto.token', '');
