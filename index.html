@@ -40,7 +40,7 @@ h1,h2,h3,h4{font-family:var(--f-display)}
 .top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:12px;height:68px;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--line)}
 .brand{font:700 21px/1 var(--f-display);letter-spacing:-.025em;display:flex;align-items:center;gap:9px;margin-right:6px;flex-shrink:0}
 .brand svg{width:34px;height:34px;padding:8px;border-radius:12px;background:var(--accent);color:#fff;flex:none}
-.dashing .top{padding-left:max(20px,calc((100vw - 1500px)/2));padding-right:max(20px,calc((100vw - 1500px)/2))}
+.dashing .top{padding-left:max(20px,calc((100vw - min(88vw,2400px))/2));padding-right:max(20px,calc((100vw - min(88vw,2400px))/2))}
 .dashing .brand{align-self:stretch;width:210px;padding-left:18px;margin-right:8px;border-right:1px solid var(--line)}
 .filechip{display:flex;flex-direction:column;justify-content:center;min-width:0;color:var(--ink3);font-size:12.5px;line-height:1.35;white-space:nowrap}
 .filechip>*{overflow:hidden;text-overflow:ellipsis}
@@ -77,7 +77,7 @@ h1,h2,h3,h4{font-family:var(--f-display)}
 @media(max-width:860px){.landing{grid-template-columns:1fr;padding-top:32px;gap:44px}}
 
 /* ---------- layout dashboard ---------- */
-.dash{display:grid;grid-template-columns:210px minmax(0,1fr);align-items:start;max-width:1500px;margin:0 auto}
+.dash{display:grid;grid-template-columns:210px minmax(0,1fr);align-items:start;width:min(88vw,2400px);margin:0 auto}
 #main{padding:26px 28px 72px;min-width:0;width:100%}
 .rail{position:fixed;top:0;right:0;bottom:0;width:min(340px,92vw);z-index:40;overflow:auto;background:var(--surface);border-left:1px solid var(--line);border-radius:14px 0 0 14px;padding:16px;transform:translateX(105%);visibility:hidden;transition:transform .2s,visibility .2s}
 .rail.open{transform:none;visibility:visible}
@@ -296,7 +296,7 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
 /* ---------- mobile e finestre ridimensionate ---------- */
 #backdrop{position:fixed;inset:0;background:rgba(8,12,24,.5);z-index:35}
 @media(max-width:980px){
-  .dash{grid-template-columns:1fr}
+  .dash{grid-template-columns:1fr;width:100%}
   #main{padding:14px 14px 60px}
   .side{position:sticky;top:58px;z-index:25;height:auto;flex-direction:row;align-items:center;padding:6px 12px;border-right:0;border-bottom:1px solid var(--line);background:var(--surface);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
   .side::-webkit-scrollbar{display:none}
@@ -305,7 +305,7 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
   .tab svg{width:16px;height:16px}
   .side-settings{margin:0 0 0 4px;padding:7px 10px;border:1px solid transparent;border-left:1px solid var(--line);border-radius:8px}
   .side-foot{display:none}
-  .dashing .top{padding-left:14px}
+  .dashing .top{padding-left:14px;padding-right:14px}
   .dashing .brand{width:auto;padding:0;border-right:0}
   .filechip .meta{display:none}
 }
@@ -321,7 +321,7 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
 }
 @media(max-width:580px){
   .top{padding:0 8px;gap:6px}
-  .dashing .top{padding-left:8px}
+  .dashing .top{padding-left:8px;padding-right:8px}
   .filechip{display:none}
   .top .btn{padding:6px 8px}
   .top .btn .btn-lbl{display:none}
@@ -1996,7 +1996,7 @@ document.addEventListener('click', e => {
   switch (v.act) {
     case 'pick': $('#file').click(); break;
     case 'sample': loadText(sampleCSV(), 'esempio-spese.csv'); break;
-    case 'theme': { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; store.set('estratto.theme', t); break; }
+    case 'theme': { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; store.set(THEME_KEY, t); break; }
     case 'cols': if (S.raw) openMapDialog(false); break;
     case 'map-cancel': $('#mapDlg').close(); break;
     case 'map-apply': applyMap(); break;
@@ -2197,7 +2197,8 @@ let lastW = innerWidth;
 window.addEventListener('resize', debounce(() => { if (D && Math.abs(innerWidth - lastW) > 2) { lastW = innerWidth; renderPanel(); } }, 160));
 
 /* tema */
-document.documentElement.dataset.theme = store.get('estratto.theme', 'light');
+const THEME_KEY = 'estratto.theme.v2';
+document.documentElement.dataset.theme = store.get(THEME_KEY, 'light');
 
 /* Accesso automatico e sincronizzazione sessione Revolut */
 const savedToken = store.get('estratto.token', '');
