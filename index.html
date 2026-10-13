@@ -934,6 +934,9 @@ function build() {
   out.sort((a, b) => a.ts - b.ts || a.id - b.id);
   let bal = 0; out.forEach(t => t.bal = (bal += t.amount)); // saldo cumulato dall'inizio del file
   S.tx = out; S.skipped = skipped;
+  let clearedSavings = false;
+  for (const t of out) if (isInstantSavingsTransfer(t) && S.selectedIds.delete(t.id)) clearedSavings = true;
+  if (clearedSavings) store.set('estratto.selected', [...S.selectedIds]);
   S.bounds = {min: out[0].d, max: out[out.length - 1].d};
   S.hasAcct = m.acct >= 0;
   S.accts = [...new Set(out.map(t => t.acct))].sort();
@@ -1672,6 +1675,14 @@ function savingsFromCsv() {
   return {history, deposits: sum(history, m => m.deposits), withdrawals: sum(history, m => m.withdrawals), count: sum(history, m => m.count), net: balance};
 }
 
+function isInstantSavingsTransfer(t) {
+  return /(?:to|from) instant access savings/i.test(t.desc);
+}
+
+function selectableTransactions() {
+  return S.tx.filter(t => !isInstantSavingsTransfer(t) && passes(t, S.filters, {skipSelected: true, skipExcluded: true}));
+}
+
 function drawSavingsHistory(host, history) {
   if (!history.length) return;
   const w = W(host), h = 210, m = {t: 14, r: 14, b: 32, l: 66}, iw = w - m.l - m.r, ih = h - m.t - m.b;
@@ -1802,12 +1813,12 @@ function tabWallets(P) {
 }
 
 function tabSelection(P) {
-  const allRows = S.tx.filter(t => passes(t, S.filters, {skipSelected: true, skipExcluded: true}));
+  const allRows = selectableTransactions();
   const q = S.selQuery ? S.selQuery.toLowerCase() : '';
   const rows = q ? allRows.filter(t => (t.hay + ' ' + t.cat.toLowerCase()).includes(q)) : allRows;
 
 
-  const selList = S.tx.filter(t => S.selectedIds.has(t.id) && !S.excludedIds.has(t.id));
+  const selList = S.tx.filter(t => S.selectedIds.has(t.id) && !S.excludedIds.has(t.id) && !isInstantSavingsTransfer(t));
   const selExp = sum(selList.filter(t => t.amount < 0), t => t.abs);
   const selInc = sum(selList.filter(t => t.amount > 0), t => t.abs);
   const selNet = selInc - selExp;
@@ -1831,7 +1842,7 @@ function tabSelection(P) {
       </div>
     </div>
     <div class="statline" style="margin-top:10px">
-      <div><div class="v">${nf.format(S.selectedIds.size)}</div><div class="l">operazioni scelte</div></div>
+      <div><div class="v">${nf.format(selList.length)}</div><div class="l">operazioni scelte</div></div>
       <div><div class="v" style="color:var(--out)">${fmt(selExp)}</div><div class="l">spese selezionate</div></div>
       <div><div class="v" style="color:var(--in)">${fmt(selInc)}</div><div class="l">entrate selezionate</div></div>
       <div><div class="v" style="color:${selNet >= 0 ? 'var(--in)' : 'var(--out)'}">${selNet >= 0 ? '+' : ''}${fmt(selNet)}</div><div class="l">saldo netto</div></div>
@@ -2005,7 +2016,7 @@ document.addEventListener('click', e => {
     case 'merchant': f.q = v.q; f.qt = v.q.toLowerCase().split(/\s+/).filter(Boolean); $('#fQ').value = v.q; S.page = 0; render(); break;
     case 'edit': openCatDialog(+v.id); break;
     case 'sel-toggle': {
-      if (S.selectedIds.size === 0 && !S.onlySelected) {
+      if (!S.tx.some(t => S.selectedIds.has(t.id) && !isInstantSavingsTransfer(t)) && !S.onlySelected) {
         toast('Seleziona almeno un’operazione prima di attivare il filtro.');
         return;
       }
@@ -2026,7 +2037,7 @@ document.addEventListener('click', e => {
       break;
     }
     case 'sel-all': {
-      const allRows = S.tx.filter(t => passes(t, S.filters, {skipSelected: true, skipExcluded: true}));
+      const allRows = selectableTransactions();
       allRows.forEach(t => S.selectedIds.add(t.id));
       store.set('estratto.selected', [...S.selectedIds]);
       if (S.onlySelected) render(); else { renderPanel(); renderRail(); }
@@ -2043,7 +2054,7 @@ document.addEventListener('click', e => {
     }
     case 'sel-only-out': {
       S.selectedIds.clear();
-      S.tx.filter(t => t.amount < 0 && passes(t, S.filters, {skipSelected: true, skipExcluded: true}))
+      selectableTransactions().filter(t => t.amount < 0)
         .forEach(t => S.selectedIds.add(t.id));
       store.set('estratto.selected', [...S.selectedIds]);
       if (S.onlySelected) render(); else { renderPanel(); renderRail(); }
@@ -2052,7 +2063,7 @@ document.addEventListener('click', e => {
     }
     case 'sel-only-in': {
       S.selectedIds.clear();
-      S.tx.filter(t => t.amount > 0 && passes(t, S.filters, {skipSelected: true, skipExcluded: true}))
+      selectableTransactions().filter(t => t.amount > 0)
         .forEach(t => S.selectedIds.add(t.id));
       store.set('estratto.selected', [...S.selectedIds]);
       if (S.onlySelected) render(); else { renderPanel(); renderRail(); }
@@ -2060,14 +2071,14 @@ document.addEventListener('click', e => {
       break;
     }
     case 'sel-invert': {
-      const allRows = S.tx.filter(t => passes(t, S.filters, {skipSelected: true, skipExcluded: true}));
+      const allRows = selectableTransactions();
       allRows.forEach(t => { if (S.selectedIds.has(t.id)) S.selectedIds.delete(t.id); else S.selectedIds.add(t.id); });
       store.set('estratto.selected', [...S.selectedIds]);
       if (S.onlySelected) render(); else { renderPanel(); renderRail(); }
       break;
     }
     case 'sel-page-all': {
-      const allRows = S.tx.filter(t => passes(t, S.filters, {skipSelected: true, skipExcluded: true}));
+      const allRows = selectableTransactions();
       const q = S.selQuery ? S.selQuery.toLowerCase() : '';
       const rows = q ? allRows.filter(t => (t.hay + ' ' + t.cat.toLowerCase()).includes(q)) : allRows;
       const pageIdx = S.tab === 'selezione' ? (S.selPage || 0) : S.page;
