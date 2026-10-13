@@ -391,22 +391,26 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
   #panel>.tools{margin-bottom:6px!important}
   .grid{gap:10px}
   .dashboard-grid:has(.dashboard-latest){flex:1;grid-template-rows:minmax(190px,1fr) minmax(155px,.85fr) minmax(150px,.8fr)}
-  .grid>.card{padding:14px 16px;border-radius:16px}
+  .grid>.card{display:flex;flex-direction:column;min-height:0;padding:14px 16px;border-radius:16px}
+  .dashboard-grid .row3>.card{display:flex;flex-direction:column;min-height:0}
   .grid>.card h3{font-size:14px}
   .grid>.card .hint{margin:3px 0 7px;font-size:11.5px}
   .row3{gap:10px}
   .row3>.card{padding:13px 15px}
-  .dwrap{gap:12px;margin-top:8px;flex-wrap:nowrap}
-  .dwrap>div:first-child{flex:0 0 140px;width:140px}
-  .dwrap>.rows{max-height:154px}
+  .dashboard-grid .dwrap{flex:1;min-height:0;gap:12px;margin-top:8px;flex-wrap:nowrap;align-items:stretch}
+  .dashboard-grid .dwrap>div:first-child{display:flex;align-items:center;justify-content:center;flex:0 0 clamp(140px,22vh,240px);width:clamp(140px,22vh,240px)}
+  .dashboard-grid .dwrap>.rows{display:flex;flex:1 1 auto;flex-direction:column;justify-content:space-evenly;max-height:none;min-height:0;overflow:auto}
   .rw{padding:4px 6px;gap:8px;font-size:11.5px}
-  .fq{padding:3px 5px;gap:3px 8px;font-size:11.5px}
+  .home-frequent{display:flex;flex-direction:column}
+  .home-frequent .fq{flex:1;min-height:0;padding:3px 5px;gap:3px 8px;font-size:11.5px;align-content:center}
   .fq .bar{height:5px}
-  .qa{gap:10px;margin-top:9px}
-  .qi{gap:9px;font-size:12px}
+  .qa{display:flex;flex:1;flex-direction:column;justify-content:space-around;gap:6px;margin-top:9px}
+  .qi{flex:1;align-items:center;gap:9px;font-size:12px}
   .qi .ic{width:34px;height:34px}
   .qi .ic svg{width:16px;height:16px}
   .qi span{font-size:11.5px}
+  .dashboard-latest .tablewrap{flex:1;min-height:0}
+  .dashboard-latest table{height:100%}
   .dashboard-latest th,.dashboard-latest td{padding:4px 8px;font-size:11.5px}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -1584,7 +1588,7 @@ function tabOverview(P) {
 
   const midCards = [];
   if (w.di) midCards.push(`<section class="card"><h3>Distribuzione entrate</h3><div class="dwrap"><div id="cDonutIn"></div><div class="rows plain" id="incRows"></div></div></section>`);
-  if (w.fq) midCards.push(`<section class="card"><h3>Categorie più frequenti</h3><p class="hint">Per numero di operazioni. Clicca per isolarle.</p>
+  if (w.fq) midCards.push(`<section class="card home-frequent"><h3>Categorie più frequenti</h3><p class="hint">Per numero di operazioni. Clicca per isolarle.</p>
     ${fr.map(([c, k]) => `<button class="fq" data-act="cat" data-cat="${esc(c)}"><span class="nm"><i class="dot" style="background:${catColor(c)}"></i>${esc(c)}</span><span class="v">${k}<small>${pct(k / n, 1)}</small></span><span class="bar"><i style="width:${(k / fr[0][1] * 100).toFixed(1)}%;background:${catColor(c)}"></i></span></button>`).join('')}</section>`);
   if (w.in) midCards.push(`<section class="card"><h3>Analisi rapida</h3><div class="qa">${Q.map(x => `<div class="qi" style="--c:${x.c}"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${x.i}</svg></div><div><b>${x.t}</b><span>${x.s}</span></div></div>`).join('')}</div></section>`);
   const secMid = midCards.length ? `<div class="row3">${midCards.join('')}</div>` : '';
