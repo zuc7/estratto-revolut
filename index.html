@@ -392,6 +392,7 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
   .grid{gap:10px}
   .dashboard-grid:has(.dashboard-latest){flex:1;grid-template-rows:minmax(190px,1fr) minmax(155px,.85fr) minmax(150px,.8fr)}
   .grid>.card{display:flex;flex-direction:column;min-height:0;padding:14px 16px;border-radius:16px}
+  .dashboard-grid #cBuckets{display:flex;flex:1;min-height:0}
   .dashboard-grid .row3>.card{display:flex;flex-direction:column;min-height:0}
   .grid>.card h3{font-size:14px}
   .grid>.card .hint{margin:3px 0 7px;font-size:11.5px}
@@ -1381,7 +1382,7 @@ function dailySeries() {
 }
 
 function drawBuckets(host) {
-  const B = D.buckets, w = W(host), h = matchMedia('(min-width: 1500px) and (min-height: 760px)').matches ? 160 : 290, m = {t: 12, r: 10, b: 30, l: 54};
+  const B = D.buckets, w = W(host), compact = matchMedia('(min-width: 1500px) and (min-height: 760px)').matches, h = Math.max(compact ? 140 : 290, host.clientHeight || 0), m = {t: 12, r: 10, b: 30, l: 54};
   const iw = w - m.l - m.r, ih = h - m.t - m.b, nets = B.map(b => b.inc - b.exp);
   const sc = niceScale(Math.min(0, ...nets), Math.max(1, ...B.map(b => Math.max(b.inc, b.exp)), ...nets), 4);
   const y = v => m.t + ih - (v - sc.lo) / (sc.hi - sc.lo) * ih;
