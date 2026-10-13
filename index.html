@@ -40,7 +40,7 @@ h1,h2,h3,h4{font-family:var(--f-display)}
 .top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:12px;height:68px;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--line)}
 .brand{font:700 21px/1 var(--f-display);letter-spacing:-.025em;display:flex;align-items:center;gap:9px;margin-right:6px;flex-shrink:0}
 .brand svg{width:34px;height:34px;padding:8px;border-radius:12px;background:var(--accent);color:#fff;flex:none}
-.dashing .top{padding-left:max(20px,calc((100vw - min(88vw,2400px))/2));padding-right:max(20px,calc((100vw - min(88vw,2400px))/2))}
+.dashing .top{padding-left:max(0px,calc((100vw - min(100vw,2400px))/2));padding-right:max(0px,calc((100vw - min(100vw,2400px))/2))}
 .dashing .brand{align-self:stretch;width:210px;padding-left:18px;margin-right:8px;border-right:1px solid var(--line)}
 .filechip{display:flex;flex-direction:column;justify-content:center;min-width:0;color:var(--ink3);font-size:12.5px;line-height:1.35;white-space:nowrap}
 .filechip>*{overflow:hidden;text-overflow:ellipsis}
@@ -77,7 +77,7 @@ h1,h2,h3,h4{font-family:var(--f-display)}
 @media(max-width:860px){.landing{grid-template-columns:1fr;padding-top:32px;gap:44px}}
 
 /* ---------- layout dashboard ---------- */
-.dash{display:grid;grid-template-columns:210px minmax(0,1fr);align-items:start;width:min(88vw,2400px);margin:0 auto}
+.dash{display:grid;grid-template-columns:210px minmax(0,1fr);align-items:start;width:min(100vw,2400px);margin:0 auto}
 #main{padding:26px 28px 72px;min-width:0;width:100%}
 .rail{position:fixed;top:0;right:0;bottom:0;width:min(340px,92vw);z-index:40;overflow:auto;background:var(--surface);border-left:1px solid var(--line);border-radius:14px 0 0 14px;padding:16px;transform:translateX(105%);visibility:hidden;transition:transform .2s,visibility .2s}
 .rail.open{transform:none;visibility:visible}
@@ -375,6 +375,33 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
   .actions .btn{width:100%;justify-content:center}
   .receipt{transform:none}
   .rail{width:100vw;border-radius:0}
+}
+@media(min-width:1500px) and (min-height:760px){
+  #main{padding:14px 20px 18px}
+  .active{gap:5px;margin-bottom:8px;min-height:24px}
+  .kpis{gap:10px}
+  .kpi{padding:12px 16px;border-radius:16px}
+  .kpi .v{margin:5px 0 3px}
+  #panel{margin-top:8px}
+  #panel>.tools{margin-bottom:6px!important}
+  .grid{gap:10px}
+  .grid>.card{padding:14px 16px;border-radius:16px}
+  .grid>.card h3{font-size:14px}
+  .grid>.card .hint{margin:3px 0 7px;font-size:11.5px}
+  .row3{gap:10px}
+  .row3>.card{padding:13px 15px}
+  .dwrap{gap:12px;margin-top:8px;flex-wrap:nowrap}
+  .dwrap>div:first-child{flex:0 0 140px;width:140px}
+  .dwrap>.rows{max-height:154px}
+  .rw{padding:4px 6px;gap:8px;font-size:11.5px}
+  .fq{padding:3px 5px;gap:3px 8px;font-size:11.5px}
+  .fq .bar{height:5px}
+  .qa{gap:10px;margin-top:9px}
+  .qi{gap:9px;font-size:12px}
+  .qi .ic{width:34px;height:34px}
+  .qi .ic svg{width:16px;height:16px}
+  .qi span{font-size:11.5px}
+  .dashboard-latest th,.dashboard-latest td{padding:5px 8px;font-size:11.5px}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -1344,7 +1371,7 @@ function dailySeries() {
 }
 
 function drawBuckets(host) {
-  const B = D.buckets, w = W(host), h = 290, m = {t: 12, r: 10, b: 30, l: 54};
+  const B = D.buckets, w = W(host), h = matchMedia('(min-width: 1500px) and (min-height: 760px)').matches ? 160 : 290, m = {t: 12, r: 10, b: 30, l: 54};
   const iw = w - m.l - m.r, ih = h - m.t - m.b, nets = B.map(b => b.inc - b.exp);
   const sc = niceScale(Math.min(0, ...nets), Math.max(1, ...B.map(b => Math.max(b.inc, b.exp)), ...nets), 4);
   const y = v => m.t + ih - (v - sc.lo) / (sc.hi - sc.lo) * ih;
@@ -1556,7 +1583,7 @@ function tabOverview(P) {
   if (w.in) midCards.push(`<section class="card"><h3>Analisi rapida</h3><div class="qa">${Q.map(x => `<div class="qi" style="--c:${x.c}"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${x.i}</svg></div><div><b>${x.t}</b><span>${x.s}</span></div></div>`).join('')}</div></section>`);
   const secMid = midCards.length ? `<div class="row3">${midCards.join('')}</div>` : '';
 
-  const secLatest = w.lt ? `<section class="card"><div class="card-h"><h3>Ultime transazioni</h3><button class="btn ghost sm" data-act="tab" data-tab="transazioni">Vedi tutte →</button></div>
+  const secLatest = w.lt ? `<section class="card dashboard-latest"><div class="card-h"><h3>Ultime transazioni</h3><button class="btn ghost sm" data-act="tab" data-tab="transazioni">Vedi tutte →</button></div>
     <div class="tablewrap"><table><thead><tr><th>Data</th><th>Descrizione</th><th>Categoria</th><th>Tipo</th><th class="num">Importo</th><th class="num" title="Entrate meno uscite, accumulate dall’inizio del file">Saldo cumulato</th></tr></thead><tbody>
     ${last.map(t => `<tr><td class="nowrap">${fmtDateShort(t.d)}</td><td class="desc" title="${esc(t.desc)}">${esc(t.desc)}</td><td class="nowrap"><span class="dot-t" style="background:${catColor(t.cat)}"></span>${esc(t.cat)}</td><td class="nowrap"><span class="dot-t" style="background:var(--${t.amount > 0 ? 'in' : 'out'})"></span>${t.amount > 0 ? 'Entrata' : 'Uscita'}</td><td class="num ${t.amount > 0 ? 'pos' : 'neg'}">${t.amount > 0 ? '+' : '−'}${fmt(t.abs)}</td><td class="num">${fmt(t.bal)}</td></tr>`).join('')}</tbody></table></div></section>` : '';
 
@@ -2227,8 +2254,8 @@ document.addEventListener('mousemove', e => {
 document.addEventListener('mouseout', e => { if (!e.relatedTarget) { tip.classList.remove('on'); tip._src = null; } });
 
 /* ridimensionamento */
-let lastW = innerWidth;
-window.addEventListener('resize', debounce(() => { if (D && Math.abs(innerWidth - lastW) > 2) { lastW = innerWidth; renderPanel(); } }, 160));
+let lastW = innerWidth, lastH = innerHeight;
+window.addEventListener('resize', debounce(() => { if (D && (Math.abs(innerWidth - lastW) > 2 || Math.abs(innerHeight - lastH) > 2)) { lastW = innerWidth; lastH = innerHeight; renderPanel(); } }, 160));
 
 /* tema */
 const THEME_KEY = 'estratto.theme.v3';
