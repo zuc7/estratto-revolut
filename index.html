@@ -851,7 +851,7 @@ const INC_RULES = [
   ['Stipendio & Lavoro', /stipendio|salario|\bpaga\b|emolument|retribuz|compenso|fattura|cedolino|\blavoro\b|\bpensione\b/],
   ['Borse & Sussidi', /borsa di studio|\bersu\b|\badisu\b|\bdsu\b|sussidio|\bbonus\b|contributo|\binps\b|assegno/],
   ['Rimborsi', /rimborso|storno|\breso\b|\brefund\b|cashback|chargeback|annullament/],
-  ['Trasferimenti ricevuti', /bonifico|giroconto|satispay|paypal|revolut|postepay|accredito|a vostro favore|famil|genitor|mamma|pap[aà]\b|regalo|paghetta/]
+  ['Trasferimenti', /bonifico|giroconto|satispay|paypal|revolut|postepay|accredito|a vostro favore|famil|genitor|mamma|pap[aà]\b|regalo|paghetta/]
 ];
 function autoCat(t) {
   const s = ' ' + t.hay + ' ';
@@ -865,19 +865,22 @@ function autoCat(t) {
     if (/^reward$|referral reward|cashback|premio/.test(kind + ' ' + desc)) return 'Bonus & Premi';
     if (/^topup$/.test(kind)) {
       if (/apple pay top.?up|top up|ricarica/.test(desc)) return 'Ricariche & Versamenti';
-      return 'Trasferimenti ricevuti';
+      return 'Trasferimenti';
     }
-    if (transferKind && /from instant access savings|from investment account|closing transaction/.test(desc)) return 'Trasferimenti interni';
+    if (/from instant access savings|from investment account|closing transaction/.test(desc)) return 'Trasferimenti interni';
   } else {
-    if (transferKind && /to instant access savings|to investment account/.test(desc)) return 'Trasferimenti interni';
+    if (/to instant access savings|to investment account/.test(desc)) return 'Trasferimenti interni';
     if (/^rev payment$/.test(kind) || /refund|reversal|storno|rev payment/.test(desc)) return 'Rimborsi';
   }
 
   const rules = t.amount < 0 ? EXP_RULES : INC_RULES;
   for (const [c, re] of rules) if (re.test(s)) return c;
 
+  // Le descrizioni Revolut spesso riportano il beneficiario senza il tipo operazione.
+  if (/^(?:(?:sent|received|payment) )?(?:to|from)\s+[\p{L}]/iu.test(desc)) return 'Trasferimenti';
+
   if (t.amount > 0) {
-    if (transferKind || /^topup$/.test(kind) || /transfer from|payment from|accredito/.test(desc)) return 'Trasferimenti ricevuti';
+    if (transferKind || /^topup$/.test(kind) || /transfer from|payment from|accredito/.test(desc)) return 'Trasferimenti';
     return 'Altre entrate';
   }
   if (/^card payment$/.test(kind)) return 'Acquisti da classificare';
@@ -888,7 +891,7 @@ const CAT_COLORS = {
   'Supermercato':'#2E9D6A','Ristoranti & Bar':'#E58A22','Trasporti':'#2D5BE3','Casa & Bollette':'#D9A81E','Abbonamenti':'#8B4FC4','Shopping':'#D9558F',
   'Salute':'#1F9FA8','Svago & Cultura':'#4C4FD1','Istruzione':'#8DB63C','Viaggi & Alloggi':'#3AA6D8','Sport & Benessere':'#9A6B43','Telefono & Internet':'#64748B',
   'Prelievi':'#8892A3','Commissioni & Tasse':'#3D4A63','Trasferimenti':'#B79BD9','Altro':'#A4ACB9',
-  'Stipendio & Lavoro':'#1E9A62','Borse & Sussidi':'#55B86B','Rimborsi':'#7CC6A4','Trasferimenti ricevuti':'#94CFA9','Altre entrate':'#B5C9AE',
+  'Stipendio & Lavoro':'#1E9A62','Borse & Sussidi':'#55B86B','Rimborsi':'#7CC6A4','Altre entrate':'#B5C9AE',
   'Interessi attivi':'#58B9D5','Bonus & Premi':'#6CCB91','Ricariche & Versamenti':'#4DAA9A','Trasferimenti interni':'#9B8AD8','Acquisti da classificare':'#A4ACB9','Spese da classificare':'#A4ACB9'
 };
 const PALETTE = ['#2D5BE3','#E58A22','#2E9D6A','#8B4FC4','#D9558F','#1F9FA8','#D9A81E','#4C4FD1','#9A6B43','#8DB63C','#3AA6D8','#64748B'];
@@ -898,6 +901,7 @@ function catColor(c) {
   return PALETTE[h % PALETTE.length];
 }
 const tidyCat = s => { s = s.replace(/\s+/g, ' ').trim(); return (s.charAt(0).toUpperCase() + s.slice(1)).slice(0, 40); };
+const canonicalCat = s => { const c = tidyCat(String(s || '')); return c === 'Trasferimenti ricevuti' ? 'Trasferimenti' : c; };
 
 /* =====================================================================
    Stato
@@ -1042,6 +1046,7 @@ function applyCats() {
     let c = S.txOv.get(t.id) || S.overrides[t.mkey];
     if (!c) c = categoryRuleFor(t);
     if (!c) c = (useCsv && t.rawCat) ? tidyCat(t.rawCat) : autoCat(t);
+    c = canonicalCat(c);
     t.cat = c; set.add(c);
   }
   S.cats = [...set].sort((a, b) => a.localeCompare(b, 'it'));
