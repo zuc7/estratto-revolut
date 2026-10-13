@@ -814,6 +814,15 @@ function merchantOf(desc) {
   if (!words.length) return 'Senza descrizione';
   return titleCase(words.slice(0, 2).join(' '));
 }
+function normalizeCategoryRule(s) {
+  return cleanDesc(s).replace(/\b(to|from|at|da|del|della|presso)\b/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function categoryRuleFor(t) {
+  const hay = ` ${normalizeCategoryRule(`${t.desc} ${t.merchant}`)} `;
+  return S.categoryRules
+    .filter(r => r && r.match && r.category && hay.includes(` ${r.match} `))
+    .sort((a, b) => b.match.length - a.match.length)[0]?.category || '';
+}
 
 const EXP_RULES = [
   ['Prelievi', /prelievo|prelev|cash ?(withdraw|advance)/],
@@ -848,6 +857,7 @@ function autoCat(t) {
   const s = ' ' + t.hay + ' ';
   const kind = (t.kind || '').toLowerCase().trim();
   const desc = (t.desc || '').toLowerCase();
+  const transferKind = /^(?:(?:bank|sepa) )?transfer$|^peer.?to.?peer$|^p2p$/.test(kind);
 
   // Il tipo dell'export bancario aggiunge contesto che spesso manca nella descrizione.
   if (t.amount > 0) {
@@ -857,9 +867,9 @@ function autoCat(t) {
       if (/apple pay top.?up|top up|ricarica/.test(desc)) return 'Ricariche & Versamenti';
       return 'Trasferimenti ricevuti';
     }
-    if (/^transfer$/.test(kind) && /from instant access savings|from investment account|closing transaction/.test(desc)) return 'Trasferimenti interni';
+    if (transferKind && /from instant access savings|from investment account|closing transaction/.test(desc)) return 'Trasferimenti interni';
   } else {
-    if (/^transfer$/.test(kind) && /to instant access savings|to investment account/.test(desc)) return 'Trasferimenti interni';
+    if (transferKind && /to instant access savings|to investment account/.test(desc)) return 'Trasferimenti interni';
     if (/^rev payment$/.test(kind) || /refund|reversal|storno|rev payment/.test(desc)) return 'Rimborsi';
   }
 
@@ -867,11 +877,11 @@ function autoCat(t) {
   for (const [c, re] of rules) if (re.test(s)) return c;
 
   if (t.amount > 0) {
-    if (/^transfer$/.test(kind) || /^topup$/.test(kind) || /transfer from|payment from|accredito/.test(desc)) return 'Trasferimenti ricevuti';
+    if (transferKind || /^topup$/.test(kind) || /transfer from|payment from|accredito/.test(desc)) return 'Trasferimenti ricevuti';
     return 'Altre entrate';
   }
   if (/^card payment$/.test(kind)) return 'Acquisti da classificare';
-  if (/^transfer$/.test(kind) || /^rev payment$/.test(kind)) return 'Trasferimenti';
+  if (transferKind || /^rev payment$/.test(kind)) return 'Trasferimenti';
   return 'Spese da classificare';
 }
 const CAT_COLORS = {
@@ -904,7 +914,7 @@ const WG_DEFS = [
 const S = {
   fileName: '', raw: null, map: null, sign: 'auto', dateFmt: 'dmy', autoNote: '',
   tx: [], skipped: 0, bounds: null, cats: [], knownCats: new Set(), hasAcct: false, accts: [],
-  overrides: store.get('estratto.overrides', {}), txOv: new Map(),
+  overrides: store.get('estratto.overrides', {}), categoryRules: store.get('estratto.categoryRules', []), txOv: new Map(),
   excludedIds: new Set(store.get('estratto.excluded', [])),
   selectedIds: new Set(store.get('estratto.selected', [])),
   onlySelected: Boolean(store.get('estratto.onlySelected', false)),
@@ -1030,6 +1040,7 @@ function applyCats() {
   const useCsv = S.map.cat >= 0, set = new Set();
   for (const t of S.tx) {
     let c = S.txOv.get(t.id) || S.overrides[t.mkey];
+    if (!c) c = categoryRuleFor(t);
     if (!c) c = (useCsv && t.rawCat) ? tidyCat(t.rawCat) : autoCat(t);
     t.cat = c; set.add(c);
   }
@@ -2030,18 +2041,27 @@ function openCatDialog(id) {
   const t = S.tx.find(x => x.id === id); if (!t) return;
   editing = t;
   const similar = S.tx.filter(x => x.mkey === t.mkey).length;
+  const suggestedRule = normalizeCategoryRule(t.merchant);
   $('#catBody').innerHTML = `<p class="muted"><b>${esc(t.merchant)}</b> · ${fmtDateShort(t.d)} · ${fmt(t.amount)}<br><small>${esc(t.desc)}</small></p>
     <label class="st" style="display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink2)">Categoria<input type="text" id="c_cat" list="c_list" value="${esc(t.cat)}" autocomplete="off"></label>
     <datalist id="c_list">${S.cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist>
     <label class="chk"><input type="checkbox" id="c_all" ${similar > 1 ? 'checked' : ''}> Applica a tutte le operazioni simili (${similar})</label>
-    <p class="help" style="margin-top:8px">Puoi scegliere una categoria esistente o scriverne una nuova. Le modifiche per “operazioni simili” restano salvate nel browser.</p>`;
+    <label class="st" style="display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink2)"><span><input type="checkbox" id="c_rule" ${suggestedRule.length >= 3 ? 'checked' : ''}> Ricorda questa categoria quando la descrizione contiene</span><input type="text" id="c_match" value="${esc(suggestedRule)}" maxlength="60" autocomplete="off"></label>
+    <p class="help" style="margin-top:8px">Le regole restano salvate in questo browser e valgono anche per i prossimi CSV. Usa una frase abbastanza specifica per evitare corrispondenze indesiderate.</p>`;
   $('#catDlg').showModal(); $('#c_cat').select();
 }
 function saveCat() {
   const c = tidyCat($('#c_cat').value); if (!c || !editing) return;
+  const rule = $('#c_rule').checked ? normalizeCategoryRule($('#c_match').value) : '';
+  if (rule && rule.length < 3) { toast('La parola o frase da ricordare deve contenere almeno 3 caratteri.'); $('#c_match').focus(); return; }
   if ($('#c_all').checked) { S.overrides[editing.mkey] = c; store.set('estratto.overrides', S.overrides); S.txOv.delete(editing.id); }
   else S.txOv.set(editing.id, c);
-  const n = $('#c_all').checked ? S.tx.filter(x => x.mkey === editing.mkey).length : 1;
+  if (rule) {
+    S.categoryRules = S.categoryRules.filter(r => !r || normalizeCategoryRule(r.match) !== rule);
+    S.categoryRules.push({match: rule, category: c});
+    store.set('estratto.categoryRules', S.categoryRules);
+  }
+  const n = S.tx.filter(t => ($('#c_all').checked && t.mkey === editing.mkey) || (rule && ` ${normalizeCategoryRule(`${t.desc} ${t.merchant}`)} `.includes(` ${rule} `))).length || 1;
   $('#catDlg').close(); applyCats(); render(); toast(`Categoria “${c}” assegnata a ${plural(n, 'operazione', 'operazioni')}.`);
 }
 
