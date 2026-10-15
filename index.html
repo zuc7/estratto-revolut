@@ -490,8 +490,8 @@ dialog{border-radius:14px}
   .dash{grid-template-columns:minmax(0,1fr)}
   .side{position:fixed;z-index:40;left:0;right:auto;top:50%;bottom:auto;width:min(260px,85vw);height:auto;max-height:90vh;overflow:hidden;transform:translate(-100%,-50%);visibility:hidden;border:1px solid var(--line);border-left:0;border-radius:0 16px 16px 0;box-shadow:0 12px 36px rgba(0,0,0,.15);transition:transform .22s,visibility .22s}
   .side.nav-open{transform:translate(0,-50%);visibility:visible}
-  .nav-edge{position:fixed;z-index:38;left:0;top:calc(50% - 26px);width:4px;height:52px;border:0;border-radius:0 3px 3px 0;background:var(--accent);opacity:.8;transition:opacity .15s,width .15s,transform .2s}
-  .nav-edge:hover,.nav-edge:focus-visible{opacity:1;width:6px}
+  .nav-edge{position:fixed;z-index:38;left:0;top:calc(50% - 67px);width:5px;height:134px;border:0;border-radius:2.5px;background:var(--accent);opacity:.9;transition:opacity .15s,transform .2s}
+  .nav-edge:hover,.nav-edge:focus-visible{opacity:1}
   .nav-edge[aria-expanded=true]{opacity:0;pointer-events:none;transform:translateX(-100%)}
   .side:hover,.side:focus-within{transform:translate(0,-50%);visibility:visible}
 }
