@@ -2536,19 +2536,68 @@ const THEME_KEY = 'estratto.theme.v3';
 document.documentElement.dataset.theme = store.get(THEME_KEY, 'dark');
 
 /* Accesso automatico e sincronizzazione sessione Revolut */
+let pendingDeployState = null;
+try {
+  pendingDeployState = JSON.parse(sessionStorage.getItem('estratto.deploy-state') || 'null');
+  sessionStorage.removeItem('estratto.deploy-state');
+} catch (e) { pendingDeployState = null; }
+if (pendingDeployState && pendingDeployState.raw && pendingDeployState.map) {
+  S.raw = pendingDeployState.raw; S.map = pendingDeployState.map; S.fileName = pendingDeployState.fileName || 'estratto.csv';
+  S.sign = pendingDeployState.sign || 'auto'; S.tab = pendingDeployState.tab || 'panoramica';
+  build();
+  if (pendingDeployState.filters) {
+    S.filters = {...pendingDeployState.filters, cats: new Set(pendingDeployState.filters.cats), accts: new Set(pendingDeployState.filters.accts)};
+    render();
+  }
+}
+
 const savedToken = store.get('estratto.token', '');
 if (savedToken) {
-  const cached = store.get('estratto.cache_csv', '');
-  if (cached) {
-    loadText(cached, 'revolut.csv');
-    // Aggiornamento in background senza bloccare la schermata
-    pullRevolut(true);
-  } else {
-    pullRevolut(false);
+  if (!pendingDeployState) {
+    const cached = store.get('estratto.cache_csv', '');
+    if (cached) {
+      loadText(cached, 'revolut.csv');
+      // Aggiornamento in background senza bloccare la schermata
+      pullRevolut(true);
+    } else {
+      pullRevolut(false);
+    }
   }
   // Avvia il polling dei portafogli (saldi, savings, investimenti)
   startWalletPolling();
 }
+
+/* Rileva i deploy Vercel e aggiorna le schede aperte senza perdere il CSV locale. */
+let deployedVersion = null, checkingVersion = false;
+async function checkDeploymentVersion() {
+  if (checkingVersion || document.visibilityState !== 'visible') return;
+  checkingVersion = true;
+  try {
+    const r = await fetch(`/api/version?now=${Date.now()}`, {cache: 'no-store'});
+    if (!r.ok) return;
+    const {version} = await r.json();
+    if (!version) return;
+    if (deployedVersion === null) { deployedVersion = version; return; }
+    if (version === deployedVersion) return;
+    if ($$('dialog[open]').length) return;
+    let prior = null;
+    try { prior = JSON.parse(sessionStorage.getItem('estratto.reload-guard') || 'null'); } catch (e) { /* ignora cache di sessione non valida */ }
+    if (prior && prior.version === version && Date.now() - prior.at < 120000) return;
+    if (S.raw) {
+      const state = {raw: S.raw, map: S.map, fileName: S.fileName, sign: S.sign, tab: S.tab,
+        filters: S.filters && {...S.filters, cats: [...S.filters.cats], accts: [...S.filters.accts]}};
+      try { sessionStorage.setItem('estratto.deploy-state', JSON.stringify(state)); }
+      catch (e) { toast('Nuova versione disponibile: chiudi o esporta i dati prima di aggiornare la pagina.'); return; }
+    }
+    try { sessionStorage.setItem('estratto.reload-guard', JSON.stringify({version, at: Date.now()})); } catch (e) { /* ricarica comunque */ }
+    location.reload();
+  } catch (e) { /* rete non disponibile: riprova al prossimo controllo */ }
+  finally { checkingVersion = false; }
+}
+checkDeploymentVersion();
+setInterval(checkDeploymentVersion, 60000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkDeploymentVersion(); });
+$$('dialog').forEach(dialog => dialog.addEventListener('close', checkDeploymentVersion));
 
 
 /* =====================================================================
