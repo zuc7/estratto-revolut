@@ -141,8 +141,6 @@ input:focus,select:focus{border-color:var(--accent)}
 :root[data-theme="dark"] .side-foot{background:linear-gradient(135deg,#1C2E2A,#201E2D);border-color:#34453F}
 :root[data-theme="dark"] .card{background:linear-gradient(145deg,color-mix(in srgb,var(--surface) 96%,var(--accent) 4%),var(--surface));border-color:#393647;box-shadow:inset 0 1px rgba(255,255,255,.025)}
 :root[data-theme="dark"] .card .hint{color:#BDB7C9}
-:root[data-theme="dark"] .wallet-card{background:linear-gradient(145deg,color-mix(in srgb,var(--surface2) 90%,var(--wk-c) 10%),var(--surface2));border-color:color-mix(in srgb,var(--line) 72%,var(--wk-c) 28%)}
-:root[data-theme="dark"] .wallet-card .wk-label,:root[data-theme="dark"] .wallet-card .wk-sub{color:var(--ink2)}
 :root[data-theme="dark"] .tablewrap{border-color:var(--line)}
 :root[data-theme="dark"] th{background:#252332;color:#D4CEDD;border-color:#3A3749}
 :root[data-theme="dark"] td{border-color:#2C2A38}
@@ -324,22 +322,6 @@ tbody tr:hover td{background:var(--hover)}
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 @media print{.side,.rail,#backdrop,#toast,.top .btn,.top .spacer{display:none!important}.top{position:static}.dash{display:block}.dashing .brand{border:0}.card{break-inside:avoid}}
 
-/* ---------- portafogli ---------- */
-.wkind-current{--wk-c:#2D5BE3} .wkind-savings{--wk-c:#198A58} .wkind-investment{--wk-c:#A15BF0} .wkind-other{--wk-c:#778195}
-.wallet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,300px));gap:14px;margin:18px 0}
-.wallet-card{background:var(--surface2);border:1px solid var(--line);border-radius:17px;padding:18px 20px;border-top:3px solid var(--wk-c,var(--accent));min-width:0}
-.wallet-card .wk-label{font-size:12.5px;color:var(--ink2);margin-bottom:4px;display:flex;align-items:center;gap:7px}
-.wallet-card .wk-label i{width:9px;height:9px;border-radius:50%;background:var(--wk-c,var(--accent));display:inline-block;flex:none}
-.wallet-card .wk-bal{font:700 clamp(18px,2.5vw,26px)/1.2 var(--f-display);letter-spacing:-.02em;margin:4px 0 2px}
-.wallet-card .wk-sub{font-size:12px;color:var(--ink3)}
-.inv-live{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;background:color-mix(in srgb,var(--in) 14%,transparent);color:var(--in);border-radius:99px;font-size:11.5px;font-weight:600;margin-left:8px}
-.inv-live::before{content:'';width:6px;height:6px;background:var(--in);border-radius:50%;animation:pulse 1.4s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.inv-stale .inv-live{background:color-mix(in srgb,var(--ink3) 14%,transparent);color:var(--ink3)}
-.inv-stale .inv-live::before{background:var(--ink3);animation:none}
-.wk-refresh-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:12.5px;color:var(--ink3)}
-
-
 /* ---------- widget home + escludi ---------- */
 .wg-list{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin:10px 0 6px}
 .wg-item{display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:9px;cursor:pointer;font-size:13px}
@@ -515,7 +497,7 @@ dialog{border-radius:14px}
 :root[data-theme="dark"] .side-foot{background:var(--surface2);border-color:var(--line)}
 :root[data-theme="dark"] body{background:var(--paper)}
 :root[data-theme="dark"] .top{background:var(--surface)}
-:root[data-theme="dark"] .card,:root[data-theme="dark"] .wallet-card{background:var(--surface);border-color:var(--line);box-shadow:none}
+:root[data-theme="dark"] .card{background:var(--surface);border-color:var(--line);box-shadow:none}
 :root[data-theme="dark"] .tab[aria-selected=true]{background:var(--hover);border-color:transparent;color:var(--accent)}
 :root[data-theme="dark"] .tab[aria-selected=true] svg{color:var(--accent)}
 @media(min-width:981px){
@@ -1092,8 +1074,6 @@ async function pullRevolut(silent = false) {
     store.set('estratto.cache_csv', text);
     loadText(text, 'revolut.csv');
     if (silent) toast('Dati Revolut sincronizzati.');
-    // Avvia (o riavvia) il polling dei portafogli dopo un collegamento riuscito
-    startWalletPolling();
   } catch (e) {
     if (!silent) toast('Revolut: ' + e.message);
   }
@@ -1362,13 +1342,13 @@ const TABS = [
   ['tendenze', 'Trend', '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>'],
   ['ricorrenti', 'Ricorrenti', '<path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/>'],
   ['transazioni', 'Transazioni', '<path d="M7 7h13M16 3l4 4-4 4M17 17H4M8 13l-4 4 4 4"/>'],
-  ['portafogli', 'Portafogli', '<circle cx="12" cy="12" r="9"/><path d="M15 9a3 3 0 1 1-6 0"/><path d="M12 3v3m0 12v3m9-9h-3M6 12H3"/>'],
   ['selezione', 'Selezione', '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>']
 ];
 
 
 function render() {
   if (!S.tx.length) return;
+  if (!TABS.some(([key]) => key === S.tab)) S.tab = 'panoramica';
   D = compute();
   renderRail(); renderActive(); renderKPIs(); renderTabs(); renderPanel();
 }
@@ -1486,8 +1466,8 @@ function renderTabs() {
 }
 function renderPanel() {
   const P = $('#panel');
+  if (!TABS.some(([key]) => key === S.tab)) S.tab = 'panoramica';
   if (S.tab === 'selezione') { tabSelection(P); return; }
-  if (S.tab === 'portafogli') { tabWallets(P); return; }
   if (!D.F.length) {
     P.innerHTML = `<div class="card empty"><h3>Nessuna operazione con questi filtri</h3><p>Allarga il periodo o togli qualche filtro per vedere di nuovo i dati.</p><button class="btn primary" data-act="reset">Azzera i filtri</button></div>`;
     return;
@@ -1938,233 +1918,12 @@ function tabTransactions(P) {
   <button class="btn sm" data-act="page" data-d="-1" ${S.page === 0 ? 'disabled' : ''}>Precedente</button><button class="btn sm" data-act="page" data-d="1" ${S.page >= pages - 1 ? 'disabled' : ''}>Successiva</button></div></section>`;
 }
 
-/* =====================================================================
-   Portafogli Revolut – recupero e rendering
-   ===================================================================== */
-const WK = {
-  data: null, fetchedAt: null, loading: false, error: null,
-  historyEur: [], pollTimer: null
-};
-const WK_COLORS = {current:'#2D5BE3', savings:'#198A58', investment:'#A15BF0', other:'#778195'};
-
-async function fetchWallets(silent) {
-  const tk = store.get('estratto.token', '');
-  if (!tk) return;
-  WK.loading = true; WK.error = null;
-  try {
-    const r = await fetch('/api/wallets', {headers: {Authorization: 'Bearer ' + tk}});
-    if (r.status === 401) { WK.error = 'Token non valido'; WK.loading = false; return; }
-    if (!r.ok) { WK.error = (await r.text()).slice(0, 140); WK.loading = false; return; }
-    const data = await r.json();
-    WK.data = data; WK.fetchedAt = new Date();
-    const invW = data.wallets.find(w => w.kind === 'investment');
-    WK.historyEur.push({ts: Date.now(), total: data.totalEur, invBalance: invW ? invW.balance : null});
-    if (WK.historyEur.length > 200) WK.historyEur.shift();
-    if (S.tab === 'portafogli') renderPanel();
-    if (silent) toast('Portafogli aggiornati.');
-  } catch (e) { WK.error = e.message; }
-  WK.loading = false;
-}
-
-function startWalletPolling() {
-  if (WK.pollTimer) clearInterval(WK.pollTimer);
-  fetchWallets(false);
-  WK.pollTimer = setInterval(() => fetchWallets(true), 60000);
-}
-
-function savingsFromCsv() {
-  const months = new Map();
-  for (const t of S.tx) {
-    const desc = t.desc.toLowerCase();
-    const delta = /to instant access savings/.test(desc) ? Math.abs(t.amount)
-      : /from instant access savings/.test(desc) ? -Math.abs(t.amount) : 0;
-    if (!delta) continue;
-    const m = getOr(months, t.ym, () => ({key: t.ym, net: 0, deposits: 0, withdrawals: 0, count: 0}));
-    m.net += delta;
-    if (delta > 0) m.deposits += delta; else m.withdrawals -= delta;
-    m.count++;
-  }
-  let balance = 0;
-  const history = [...months.values()].sort((a, b) => a.key.localeCompare(b.key)).map(m => ({...m, balance: balance += m.net}));
-  return {history, deposits: sum(history, m => m.deposits), withdrawals: sum(history, m => m.withdrawals), count: sum(history, m => m.count), net: balance};
-}
-
 function isInstantSavingsTransfer(t) {
   return /(?:to|from) instant access savings/i.test(t.desc);
 }
 
 function selectableTransactions() {
   return S.tx.filter(t => !isInstantSavingsTransfer(t) && passes(t, S.filters, {skipSelected: true, skipExcluded: true}));
-}
-
-function drawSavingsHistory(host, history) {
-  if (!history.length) return;
-  const w = W(host), h = 210, m = {t: 14, r: 14, b: 32, l: 66}, iw = w - m.l - m.r, ih = h - m.t - m.b;
-  const vals = history.map(p => p.balance), lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
-  const sc = niceScale(lo, hi, 4), monthIndex = key => { const [yr, mo] = key.split('-').map(Number); return yr * 12 + mo - 1; };
-  const firstMonth = monthIndex(history[0].key), lastMonth = monthIndex(history[history.length - 1].key);
-  const x = i => m.l + (firstMonth === lastMonth ? iw / 2 : (monthIndex(history[i].key) - firstMonth) / (lastMonth - firstMonth) * iw);
-  const y = v => m.t + ih - (v - sc.lo) / (sc.hi - sc.lo) * ih;
-  let s = svgOpen(w, h, 'Andamento netto dei trasferimenti Instant Savings');
-  s += sc.ticks.map(v => `<line class="gridline" x1="${m.l}" x2="${w-m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${m.l-8}" y="${(y(v)+4).toFixed(1)}" text-anchor="end">${compact(v)}</text>`).join('');
-  const pts = history.map((p, i) => `${x(i).toFixed(1)},${y(p.balance).toFixed(1)}`);
-  s += `<polyline points="${pts.join(' ')}" fill="none" stroke="${WK_COLORS.savings}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-  history.forEach((p, i) => {
-    const [yr, mo] = p.key.split('-');
-    s += `<circle cx="${x(i).toFixed(1)}" cy="${y(p.balance).toFixed(1)}" r="3.5" fill="${WK_COLORS.savings}"><title>${MESI_L[Number(mo)-1]} ${yr}: netto ${fmt(p.net)}, cumulato ${fmt(p.balance)}</title></circle>`;
-    if (i === 0 || i === history.length - 1 || history.length < 8) s += `<text x="${x(i).toFixed(1)}" y="${h-9}" text-anchor="middle">${MESI[Number(mo)-1]} ${yr.slice(-2)}</text>`;
-  });
-  host.innerHTML = s + '</svg>';
-}
-
-function drawWalletHistoryChart(host) {
-  const hist = WK.historyEur.filter(p => p.invBalance != null);
-  if (hist.length < 2) {
-    host.innerHTML = '<div class="empty" style="padding:28px 16px;color:var(--ink2)">Non ancora abbastanza campioni. Il grafico si aggiornerà ogni minuto automaticamente.</div>';
-    return;
-  }
-  const w = W(host), h = 240, m = {t: 14, r: 14, b: 34, l: 66}, iw = w - m.l - m.r, ih = h - m.t - m.b;
-  const vals = hist.map(p => p.invBalance);
-  const sc = niceScale(Math.min(...vals) * 0.998, Math.max(...vals) * 1.002, 4);
-  const xi = i => m.l + (hist.length <= 1 ? iw / 2 : i / (hist.length - 1) * iw);
-  const yv = v => m.t + ih - (v - sc.lo) / (sc.hi - sc.lo) * ih;
-  let s = svgOpen(w, h, 'Andamento saldo investimenti in tempo reale');
-  s += sc.ticks.map(v => `<line class="gridline" x1="${m.l}" x2="${w - m.r}" y1="${yv(v).toFixed(1)}" y2="${yv(v).toFixed(1)}"/><text x="${m.l - 8}" y="${(yv(v) + 4).toFixed(1)}" text-anchor="end">${compact(v)}</text>`).join('');
-  const ptsList = hist.map((p, i) => `${xi(i).toFixed(1)},${yv(p.invBalance).toFixed(1)}`);
-  s += `<path d="M${ptsList.join(' L')} L${xi(hist.length-1).toFixed(1)},${m.t+ih} L${xi(0).toFixed(1)},${m.t+ih} Z" fill="#A15BF0" opacity=".10"/>`;
-  s += `<polyline points="${ptsList.join(' ')}" fill="none" stroke="#A15BF0" stroke-width="2" stroke-linejoin="round"/>`;
-  const step = Math.max(1, Math.ceil(hist.length / 6));
-  for (let i = 0; i < hist.length; i += step) {
-    const d = new Date(hist[i].ts);
-    s += `<text x="${xi(i).toFixed(1)}" y="${h - 10}" text-anchor="middle">${pad(d.getHours())}:${pad(d.getMinutes())}</text>`;
-  }
-  for (let i = 0; i < hist.length; i++) {
-    const p = hist[i], d = new Date(p.ts);
-    const tip = `<b>${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}</b><br>Investimenti ${fmt(p.invBalance)}<br>Patrimonio ${fmt(p.total)}`;
-    const bw = Math.max(4, iw / hist.length);
-    s += `<rect class="hit" x="${(xi(i) - bw/2).toFixed(1)}" y="${m.t}" width="${bw.toFixed(1)}" height="${ih}" ${tipAttr(tip)}/>`;
-  }
-  const li = hist.length - 1;
-  s += `<circle cx="${xi(li).toFixed(1)}" cy="${yv(hist[li].invBalance).toFixed(1)}" r="4" fill="#A15BF0" stroke="var(--surface)" stroke-width="2"/>`;
-  host.innerHTML = s + '</svg>';
-}
-
-let ETF_SIM = {data: null, loading: false, error: null};
-async function loadEtfSimulation() {
-  if (ETF_SIM.loading) return;
-  ETF_SIM.loading = true; ETF_SIM.error = null;
-  const host = $('#cEtfChart');
-  if (host) host.innerHTML = '<div class="empty" style="padding:24px">Caricamento quotazioni ETF…</div>';
-  try {
-    const r = await fetch('/api/etf-today');
-    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'Quotazioni momentaneamente non disponibili.'); }
-    ETF_SIM.data = await r.json();
-  } catch (e) { ETF_SIM.error = e.message; }
-  ETF_SIM.loading = false;
-  if (S.tab === 'portafogli') renderPanel();
-}
-
-function drawEtfSimulation(host, data) {
-  if (!data?.points?.length) {
-    host.innerHTML = `<div class="empty" style="padding:24px">${esc(ETF_SIM.error || 'Nessun dato di mercato disponibile oggi.')}</div>`;
-    return;
-  }
-  const pts = data.points, w = W(host), h = 240, m = {t:14,r:14,b:34,l:66}, iw=w-m.l-m.r, ih=h-m.t-m.b;
-  const initial = data.openingValue, vals = pts.map(p => p.value), lo=Math.min(...vals,initial), hi=Math.max(...vals,initial), sc=niceScale(lo,hi,4);
-  const x=i=>m.l+(pts.length<2?iw/2:i/(pts.length-1)*iw), y=v=>m.t+ih-(v-sc.lo)/(sc.hi-sc.lo)*ih;
-  let s=svgOpen(w,h,'Valore intraday di 0,37 quote di VUAA');
-  s+=sc.ticks.map(v=>`<line class="gridline" x1="${m.l}" x2="${w-m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${m.l-8}" y="${(y(v)+4).toFixed(1)}" text-anchor="end">${compact(v)}</text>`).join('');
-  s+=`<line class="gridline" x1="${m.l}" x2="${w-m.r}" y1="${y(initial).toFixed(1)}" y2="${y(initial).toFixed(1)}" stroke-dasharray="4 4"/>`;
-  const coords=pts.map((p,i)=>`${x(i).toFixed(1)},${y(p.value).toFixed(1)}`);
-  s+=`<polyline points="${coords.join(' ')}" fill="none" stroke="#A15BF0" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-  const step=Math.max(1,Math.ceil(pts.length/6));
-  for(let i=0;i<pts.length;i+=step){const d=new Date(pts[i].ts);s+=`<text x="${x(i).toFixed(1)}" y="${h-10}" text-anchor="middle">${pad(d.getHours())}:${pad(d.getMinutes())}</text>`;}
-  const last=pts[pts.length-1], ch=last.value-initial;
-  s+=`<circle cx="${x(pts.length-1).toFixed(1)}" cy="${y(last.value).toFixed(1)}" r="4" fill="#A15BF0"/>`;
-  host.innerHTML=`<div class="statline" style="margin:12px 0"><div><div class="v">${fmt(last.value)}</div><div class="l">valore di 0,37 quote</div></div><div><div class="v ${ch>=0?'pos':'neg'}">${ch>=0?'+':''}${fmt(ch)}</div><div class="l">variazione dall’apertura (${fmt(initial)})</div></div><div><div class="v">${esc(data.asOf || '—')}</div><div class="l">ultimo aggiornamento</div></div></div>`+s+'</svg>';
-}
-
-function tabWallets(P) {
-  const tk = store.get('estratto.token', '');
-  const staleSec = WK.fetchedAt ? (Date.now() - WK.fetchedAt.getTime()) / 1000 : Infinity;
-  const isStale = staleSec > 70;
-  const fetchedStr = WK.fetchedAt ? `${pad(WK.fetchedAt.getHours())}:${pad(WK.fetchedAt.getMinutes())}:${pad(WK.fetchedAt.getSeconds())}` : '—';
-  const wallets = WK.data ? WK.data.wallets : [];
-  const totalEur = WK.data ? WK.data.totalEur : null;
-  const invW = wallets.find(w => w.kind === 'investment');
-  const savW = wallets.find(w => w.kind === 'savings');
-  const savingsCsv = savingsFromCsv();
-  const liveChip = `<span class="inv-live${isStale ? ' inv-stale' : ''}" title="${isStale ? 'Dati non aggiornati' : 'Dati in tempo reale'}">● LIVE</span>`;
-
-  const wCards = wallets.length ? wallets.map(w => {
-    const balStr = w.balance != null ? (w.currency !== 'EUR' ? w.currency + '\u00a0' : '€\u00a0') + nf.format(Math.round(w.balance * 100) / 100) : '—';
-    return `<div class="wallet-card wkind-${w.kind}"><div class="wk-label"><i></i>${esc(w.label)}</div><div class="wk-bal">${balStr}</div><div class="wk-sub">${w.kind === 'investment' ? 'Grafico in tempo reale ↓' : w.transactionCount ? nf.format(w.transactionCount) + ' mov. ultimi 12 mesi' : ''}</div></div>`;
-  }).join('') : '<div class="empty" style="padding:20px 0">Nessun portafoglio. Riprova tra qualche secondo.</div>';
-
-  P.innerHTML = `<div class="grid">
-  <section class="card" style="grid-column:span 12">
-    <div class="card-h"><div><h3>VUAA · S&amp;P 500 Acc</h3><p class="hint">Andamento intraday di 0,37 quote del Vanguard S&amp;P 500 UCITS ETF Acc. Valore iniziale calcolato al primo prezzo di mercato di oggi; quotazioni indicative, indipendenti dal CSV.</p></div><button class="btn sm" data-act="etf-refresh">Aggiorna</button></div>
-    <div id="cEtfChart">${ETF_SIM.loading ? '<div class="empty" style="padding:24px">Caricamento quotazioni ETF…</div>' : ''}</div>
-  </section>
-  ${!tk ? '<section class="card empty" style="grid-column:span 12"><h3>Collega Revolut</h3><p>Collega Revolut per visualizzare qui i saldi e gli altri dati dei tuoi portafogli.</p></section>' : ''}
-  ${tk ? `
-  <section class="card" style="grid-column:span 12">
-    <div class="card-h">
-      <div><h3>Portafogli Revolut${liveChip}</h3><p class="hint">Aggiornamento automatico ogni 60 secondi.</p></div>
-      <div class="wk-refresh-row"><span>Agg. ${fetchedStr}</span><button class="btn sm" data-act="wk-refresh">↻ Aggiorna ora</button></div>
-    </div>
-    ${WK.error ? `<p class="warn">Errore: ${esc(WK.error)}</p>` : ''}
-    ${WK.loading && !WK.data ? '<p style="color:var(--ink2);font-size:13px">Caricamento…</p>' : ''}
-    <div class="wallet-grid">${wCards}</div>
-    ${totalEur != null ? `<p style="font-size:13px;color:var(--ink2);margin-top:8px">Patrimonio totale in EUR: <b style="color:var(--ink)">${fmt(totalEur)}</b></p>` : ''}
-  </section>
-
-  ${wallets.length ? `<section class="card s6">
-    <h3>Distribuzione patrimonio</h3>
-    <div class="dwrap"><div id="cWalletPie"></div>
-    <div class="rows plain">${wallets.filter(w => w.balance != null && w.balance > 0 && w.currency === 'EUR').map(w =>
-      `<button class="rw" style="cursor:default"><span class="nm"><i class="dot" style="background:${WK_COLORS[w.kind]||'var(--accent)'}"></i><span>${esc(w.label)}</span></span><span class="bar"><i style="width:${totalEur ? (w.balance/totalEur*100).toFixed(1) : 0}%;background:${WK_COLORS[w.kind]||'var(--accent)'}"></i></span><span class="val">${fmt(w.balance)}</span></button>`
-    ).join('')}</div></div>
-  </section>` : ''}
-
-  ${invW != null ? `<section class="card ${wallets.length ? 's6' : ''}">
-    <div class="card-h">
-      <div><h3>Investimenti – andamento live${liveChip}</h3><p class="hint">Un campione ogni minuto in questa sessione.</p></div>
-      <b style="font-size:20px;font-family:var(--f-display);color:${(invW.balance||0) >= 0 ? 'var(--in)' : 'var(--out)'}">${invW.balance != null ? fmt(invW.balance) : '—'}</b>
-    </div>
-    <div id="cInvChart"></div>
-  </section>` : ''}
-
-  ${savW != null ? `<section class="card s6">
-    <h3>Instant Savings</h3><p class="hint">Saldo del portafoglio risparmio istantaneo.</p>
-    <div class="statline" style="margin-top:14px">
-      <div><div class="v" style="color:var(--in)">${savW.balance != null ? fmt(savW.balance) : '—'}</div><div class="l">saldo attuale</div></div>
-      <div><div class="v">${esc(savW.currency)}</div><div class="l">valuta</div></div>
-    </div>
-  </section>` : ''}
-  <section class="card" style="grid-column:span 12">
-    <h3>Instant Savings · movimenti dal CSV</h3>
-    <p class="hint">Trasferimenti riconosciuti nelle descrizioni “To/From Instant Access Savings”. Il cumulato parte dal primo movimento nel file e non rappresenta il saldo totale del vault.</p>
-    ${savingsCsv.count ? `<div class="statline">
-      <div><div class="v">${fmt(savingsCsv.net)}</div><div class="l">netto cumulato nel file</div></div>
-      <div><div class="v pos">${fmt(savingsCsv.deposits)}</div><div class="l">versamenti riconosciuti</div></div>
-      <div><div class="v neg">${fmt(savingsCsv.withdrawals)}</div><div class="l">prelievi riconosciuti</div></div>
-      <div><div class="v">${nf.format(savingsCsv.count)}</div><div class="l">movimenti · ${fmtDate(S.bounds.min)} – ${fmtDate(S.bounds.max)}</div></div>
-    </div><div id="cSavingsChart"></div>` : '<div class="empty" style="padding:20px 0">Nessun trasferimento Instant Savings trovato nel CSV caricato.</div>'}
-  </section>
-  ` : ''}
-  </div>`;
-
-  if (wallets.length && $('#cWalletPie')) {
-    const pieItems = wallets.filter(w => w.balance != null && w.balance > 0 && w.currency === 'EUR');
-    const t = pieItems.reduce((s, w) => s + w.balance, 0);
-    drawDonut($('#cWalletPie'), pieItems.map(w => ({cat: w.label, sum: w.balance, n: 1})), t, 'patrimonio EUR');
-  }
-  if (invW != null && $('#cInvChart')) drawWalletHistoryChart($('#cInvChart'));
-  if (savingsCsv.count && $('#cSavingsChart')) drawSavingsHistory($('#cSavingsChart'), savingsCsv.history);
-  if (!ETF_SIM.data && !ETF_SIM.loading && !ETF_SIM.error) loadEtfSimulation();
-  else if (ETF_SIM.data && $('#cEtfChart')) drawEtfSimulation($('#cEtfChart'), ETF_SIM.data);
-  else if (ETF_SIM.error && $('#cEtfChart')) drawEtfSimulation($('#cEtfChart'), null);
 }
 
 function tabSelection(P) {
@@ -2484,8 +2243,6 @@ document.addEventListener('click', e => {
     case 'page': S.page += Number(v.d); renderPanel(); $('#tabs').scrollIntoView({block: 'start'}); break;
     case 'export': exportCSV(); break;
     case 'revolut': pullRevolut(); break;
-    case 'wk-refresh': fetchWallets(false).then(() => { if (S.tab === 'portafogli') renderPanel(); }); break;
-    case 'etf-refresh': ETF_SIM.data = null; ETF_SIM.error = null; ETF_SIM.loading = false; loadEtfSimulation(); break;
     case 'disconnect-revolut': {
       if (confirm('Vuoi disconnettere Revolut da questo dispositivo e cancellare i dati memorizzati in locale?')) {
         store.set('estratto.token', '');
@@ -2619,8 +2376,6 @@ if (savedToken) {
       pullRevolut(false);
     }
   }
-  // Avvia il polling dei portafogli (saldi, savings, investimenti)
-  startWalletPolling();
 }
 
 /* Rileva i deploy Vercel e aggiorna le schede aperte senza perdere il CSV locale. */
