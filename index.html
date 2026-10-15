@@ -404,10 +404,13 @@ body{background:var(--paper);font-size:14px}
 .btn.ghost{background:transparent}
 .btn.icon{width:36px;height:36px;justify-content:center;padding:8px}
 .landing{width:100%;max-width:none;min-height:calc(100svh - 64px);align-content:center;padding:clamp(16px,4vh,48px) clamp(14px,4vw,48px);gap:clamp(20px,4vw,64px)}
-.landing h1{font-size:clamp(36px,4.6vw,52px);letter-spacing:-.035em;line-height:1.04}
-.landing p.lead{font-size:17px;line-height:1.55}
-.actions .btn{border-radius:10px}
-.receipt{width:min(clamp(300px,28vw,420px),100%);border-radius:12px;filter:drop-shadow(0 12px 24px rgba(0,0,0,.1))}
+.landing h1{font-size:clamp(36px,3vw,68px);letter-spacing:-.035em;line-height:1.04}
+.landing p.lead{font-size:clamp(17px,.95vw,21px);line-height:1.55}
+.actions{gap:clamp(10px,.8vw,16px)}
+.actions .btn{padding:clamp(11px,.8vw,16px) clamp(18px,1.2vw,26px);font-size:clamp(15px,.85vw,20px);border-radius:10px}
+.actions .btn svg{width:clamp(16px,.9vw,20px);height:clamp(16px,.9vw,20px)}
+.receipt{width:min(clamp(360px,34vw,560px),100%);padding:clamp(26px,2vw,38px) clamp(24px,2vw,36px) clamp(28px,2.2vw,42px);font-size:clamp(13px,.72vw,17px);border-radius:12px;filter:drop-shadow(0 12px 24px rgba(0,0,0,.1))}
+.receipt h2{font-size:clamp(24px,1.5vw,34px)}
 .dash{grid-template-columns:224px minmax(0,1fr);align-items:stretch}
 #main{padding:clamp(14px,2vw,28px) clamp(14px,3vw,48px) 64px;max-width:none;min-width:0}
 .side{top:64px;height:calc(100vh - 64px);padding:28px 16px 18px;border-right:1px solid var(--line);gap:16px}
