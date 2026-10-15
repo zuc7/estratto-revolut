@@ -309,13 +309,13 @@ tbody tr:hover td{background:var(--hover)}
   body.dashing:has(.dashboard-grid) .dashboard-expenses .dwrap>div:first-child{flex:0 1 260px;width:min(35cqi,260px);min-width:180px}
   body.dashing:has(.dashboard-grid) .dashboard-expenses .dwrap>.rows{flex:1 1 180px;min-height:0;overflow:hidden}
   body.dashing:has(.dashboard-grid) .dashboard-grid .qa{flex:1;min-height:0;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr;gap:7px;margin-top:8px;align-content:stretch;overflow:hidden}
-  body.dashing:has(.dashboard-grid) .dashboard-grid .qi{gap:8px;padding:8px 10px}
-  body.dashing:has(.dashboard-grid) .dashboard-grid .qi .ic{width:32px;height:32px}
+  body.dashing:has(.dashboard-grid) .dashboard-grid .qi{gap:10px;padding:10px 12px}
+  body.dashing:has(.dashboard-grid) .dashboard-grid .qi .ic{width:36px;height:36px}
   body.dashing:has(.dashboard-grid) .dashboard-grid .qi .ic svg{width:17px;height:17px}
-  body.dashing:has(.dashboard-grid) .dashboard-grid .qi b{font-size:12.5px}
-  body.dashing:has(.dashboard-grid) .dashboard-grid .qi span{font-size:11.5px;line-height:1.35}
+  body.dashing:has(.dashboard-grid) .dashboard-grid .qi b{font-size:14.5px;line-height:1.3}
+  body.dashing:has(.dashboard-grid) .dashboard-grid .qi span{font-size:13px;line-height:1.4}
   body.dashing:has(.dashboard-grid) .dashboard-latest .tablewrap{flex:1;min-height:0;overflow:hidden}
-  body.dashing:has(.dashboard-grid) .dashboard-latest td,body.dashing:has(.dashboard-grid) .dashboard-latest th{padding:4px 7px}
+  body.dashing:has(.dashboard-grid) .dashboard-latest td,body.dashing:has(.dashboard-grid) .dashboard-latest th{padding:3px 7px;font-size:12px}
 }
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 @media print{.side,.rail,#backdrop,#toast,.top .btn,.top .spacer{display:none!important}.top{position:static}.dash{display:block}.dashing .brand{border:0}.card{break-inside:avoid}}
@@ -1771,7 +1771,8 @@ function tabOverview(P) {
     star: '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3z"/>'
   };
   const Q = dashboardReads(ico);
-  const last = D.F.slice(-5).reverse();
+  const lastCount = Math.max(5, Math.min(10, Math.floor((window.innerHeight - 340) / 70)));
+  const last = D.F.slice(-lastCount).reverse();
 
   const secBuckets = w.b ? `<section class="card ${w.de ? 's8' : ''}"><div class="card-h"><div><h3>Entrate vs Uscite</h3><p class="hint">Clicca una barra per limitare l’analisi a quel periodo.</p></div>
     <div class="legend"><span><i style="background:var(--in)"></i>Entrate</span><span><i style="background:var(--out)"></i>Uscite</span><span><i class="ln-i"></i>Saldo</span></div></div><div id="cBuckets"></div></section>` : '';
