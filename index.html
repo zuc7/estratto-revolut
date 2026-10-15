@@ -430,15 +430,15 @@ body{background:var(--paper);font-size:14px}
 .fs{padding:12px 0}
 .kpis{gap:12px}
 .kpi{border-radius:14px;padding:18px 20px}
-.kpi:first-child{background:var(--surface);border-color:var(--line)}
+.kpi:first-child{background:var(--surface);border-color:var(--line);color:var(--ink)}
 .kpi:first-child .l,.kpi:first-child .v,.kpi:first-child .s{color:inherit}
 .kpi .v{font-size:clamp(21px,2vw,28px)}
 .card{border-radius:14px;padding:20px 22px}
 .tablewrap{border-radius:10px}
 dialog{border-radius:14px}
 .grid{gap:clamp(10px,1.4vw,18px)}
-.row3{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));align-items:start;gap:clamp(10px,1.4vw,16px)}
-.row3>.card{align-self:start}
+.row3{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));align-items:stretch;gap:clamp(10px,1.4vw,16px)}
+.row3>.card{align-self:stretch}
 .dashboard-grid{grid-auto-rows:min-content}
 .settings-section+.settings-section{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
 .settings-section h3{margin:0;font-size:14px}
