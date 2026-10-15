@@ -251,8 +251,8 @@ tbody tr:hover td{background:var(--hover)}
 
 /* ---------- panoramica ---------- */
 #panel{margin-top:16px}
-.dwrap{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap;margin-top:14px}
-.dwrap>div:first-child{flex:0 0 170px;width:170px}
+.dwrap{display:flex;align-items:center;justify-content:flex-start;gap:clamp(12px,2vw,22px);flex-wrap:wrap;margin-top:14px}
+.dwrap>div:first-child{flex:0 1 min(32%,250px);width:min(32%,250px);min-width:140px}
 .dwrap>.rows{flex:1 1 200px;min-width:0;max-height:240px;overflow:auto}
 .rows.plain .rw{grid-template-columns:minmax(0,1fr) auto}
 .rows.plain .bar{display:none}
@@ -265,7 +265,7 @@ tbody tr:hover td{background:var(--hover)}
 .fq .v small{color:var(--ink3);margin-left:10px}
 .fq .bar{grid-column:1/-1;height:6px;border-radius:99px;background:var(--grid);overflow:hidden}
 .fq .bar i{display:block;height:100%;border-radius:99px}
-.qa{display:grid;gap:18px;margin-top:14px}
+.qa{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:18px;margin-top:14px}
 .qi{display:flex;gap:14px;align-items:flex-start}
 .qi .ic{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 18%,transparent);color:var(--c)}
 .qi .ic svg{width:20px;height:20px}
@@ -483,6 +483,7 @@ dialog{border-radius:14px}
   <button class="btn ghost" id="btnDisRev" hidden data-act="disconnect-revolut" aria-label="Disconnetti Revolut" title="Disconnetti Revolut da questo dispositivo"><span class="btn-lbl">Disconnetti</span></button>
   <button class="btn" id="btnPdf" hidden data-act="pdf" aria-label="Esporta PDF" title="Esporta PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></svg><span class="btn-lbl">Esporta PDF</span></button>
   <button class="btn" id="btnNew" hidden data-act="pick" aria-label="Nuovo file" title="Nuovo file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg><span class="btn-lbl">Nuovo file</span></button>
+  <button class="btn icon" id="btnHome" hidden data-act="wg-open" aria-label="Personalizza home" title="Personalizza home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg></button>
   <button class="btn icon" data-act="theme" aria-label="Cambia tema chiaro/scuro" title="Cambia tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg></button>
 </header>
 
@@ -1120,7 +1121,7 @@ function applyCats() {
 
 function showDash() {
   $('#landing').hidden = true; $('#dash').hidden = false; document.body.classList.add('dashing');
-  $('#btnPdf').hidden = false; $('#btnRev').hidden = false; $('#btnDisRev').hidden = !store.get('estratto.token', ''); $('#btnNew').hidden = false; $('#btnRail').hidden = false;
+  $('#btnPdf').hidden = false; $('#btnRev').hidden = false; $('#btnDisRev').hidden = !store.get('estratto.token', ''); $('#btnNew').hidden = false; $('#btnHome').hidden = false; $('#btnRail').hidden = false;
   const chip = $('#fileChip'); chip.hidden = false;
   chip.innerHTML = `<b>${esc(S.fileName)}</b><span class="meta">${plural(S.tx.length, 'operazione', 'operazioni')} · ${fmtDate(S.bounds.min)} – ${fmtDate(S.bounds.max)}</span>`;
   $('#sideNote').innerHTML = `<b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>File analizzato</b>${S.skipped ? plural(S.skipped, 'riga ignorata', 'righe ignorate') + ' perché senza data o importo valido.' : 'Tutte le righe lette correttamente.'}`;
@@ -1461,7 +1462,7 @@ function dailySeries() {
 }
 
 function drawBuckets(host) {
-  const B = D.buckets, w = W(host), compact = matchMedia('(min-width: 1500px) and (min-height: 760px)').matches, h = Math.max(compact ? 140 : 290, host.clientHeight || 0), m = {t: 12, r: 10, b: 30, l: 54};
+  const B = D.buckets, w = W(host), h = Math.max(180, Math.min(360, Math.round(w * 0.22))), m = {t: 12, r: 10, b: 30, l: 54};
   const iw = w - m.l - m.r, ih = h - m.t - m.b, nets = B.map(b => b.inc - b.exp);
   const sc = niceScale(Math.min(0, ...nets), Math.max(1, ...B.map(b => Math.max(b.inc, b.exp)), ...nets), 4);
   const y = v => m.t + ih - (v - sc.lo) / (sc.hi - sc.lo) * ih;
@@ -1679,8 +1680,7 @@ function tabOverview(P) {
 
   const hasAny = w.b || w.de || midCards.length || w.lt;
 
-  P.innerHTML = `<div class="tools" style="justify-content:flex-end;margin-bottom:12px"><button class="btn ghost sm" data-act="wg-open"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:5px;vertical-align:-2px"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Personalizza home</button></div>
-  <div class="grid dashboard-grid">
+  P.innerHTML = `<div class="grid dashboard-grid">
   ${secBuckets}${secDonutExp}${secMid}${secLatest}
   ${!hasAny ? '<section class="card empty"><p>Nessun widget attivo nella home. Clicca “Personalizza home” per sceglierne alcuni.</p></section>' : ''}
   </div>`;
