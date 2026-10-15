@@ -193,7 +193,9 @@ input:focus,select:focus{border-color:var(--accent)}
 
 svg{display:block;max-width:100%}
 svg text{font:11px var(--f-body);fill:var(--ink3)}
+svg .chart-label{font:700 9px var(--f-body);letter-spacing:.08em}
 svg .gridline{stroke:var(--grid);stroke-width:1}
+svg .candle-xgrid{opacity:.45}
 svg .hit{fill:transparent}
 svg .hit:hover{fill:var(--hover)}
 svg .seg-c{transition:stroke-width .12s}
@@ -1605,22 +1607,34 @@ function drawCandles(host) {
   }
   if (!candles.length) { host.innerHTML = '<div class="empty">Nessuna operazione nel periodo.</div>'; return; }
 
-  const w = W(host), h = 280, m = {t: 14, r: 14, b: 30, l: 58};
-  const iw = w - m.l - m.r, ih = h - m.t - m.b;
+  const w = W(host), h = 320, m = {t: 24, r: 16, b: 28, l: 68}, volumeH = 42, volumeGap = 12;
+  const iw = w - m.l - m.r, plotBottom = h - m.b - volumeH - volumeGap, ih = plotBottom - m.t;
   const sc = niceScale(Math.min(0, ...candles.map(c => c.low)), Math.max(0, ...candles.map(c => c.high)), 4);
   const y = v => m.t + (sc.hi - v) / (sc.hi - sc.lo) * ih;
-  const step = iw / candles.length, bodyW = Math.max(1, Math.min(14, step * .62));
-  let s = svgOpen(w, h, 'Saldo progressivo per operazione a candele') + gridY(sc, y, m, w);
+  const maxAmount = Math.max(1, ...candles.map(c => c.transaction.abs));
+  const volumeTop = plotBottom + volumeGap, volumeBottom = h - m.b;
+  const step = iw / candles.length, bodyW = Math.max(1, Math.min(12, step * .68));
+  let s = svgOpen(w, h, 'Saldo progressivo per operazione a candele');
+  s += `<text x="${m.l}" y="13" class="chart-label">SALDO CUMULATO · EUR</text><text x="${w - m.r}" y="13" text-anchor="end" class="chart-label">${candles.length} OPERAZIONI · BARRE = IMPORTO</text>`;
+  s += gridY(sc, y, m, w);
+  s += `<line x1="${m.l}" x2="${w - m.r}" y1="${plotBottom}" y2="${plotBottom}" stroke="var(--line)"/><line x1="${m.l}" x2="${w - m.r}" y1="${volumeBottom}" y2="${volumeBottom}" stroke="var(--line)"/>`;
   const every = Math.max(1, Math.ceil(74 / step));
+  let lastLabelDate = '';
   candles.forEach((c, i) => {
     const t = c.transaction;
     const x = m.l + step * (i + .5), rising = c.close >= c.open, color = rising ? 'var(--in)' : 'var(--out)';
     const openY = y(c.open), closeY = y(c.close), top = Math.min(openY, closeY), bodyH = Math.max(2, Math.abs(closeY - openY));
+    if (i % every === 0) s += `<line class="gridline candle-xgrid" x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${m.t}" y2="${volumeBottom}"/>`;
+    const amountH = t.abs / maxAmount * (volumeH - 2), amountY = volumeBottom - amountH;
+    s += `<rect x="${(x - bodyW / 2).toFixed(1)}" y="${amountY.toFixed(1)}" width="${bodyW.toFixed(1)}" height="${amountH.toFixed(1)}" fill="${color}" opacity=".42"/>`;
     s += `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${y(c.high).toFixed(1)}" y2="${y(c.low).toFixed(1)}" stroke="${color}" stroke-width="1.4"/>`;
     s += `<rect class="candle" x="${(x - bodyW / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bodyW.toFixed(1)}" height="${bodyH.toFixed(1)}" fill="${rising ? 'var(--surface)' : color}" stroke="${color}" stroke-width="1.5"/>`;
-    if (i % every === 0) s += `<text x="${x.toFixed(1)}" y="${h - 8}" text-anchor="middle">${pad(t.d.getDate())}/${pad(t.d.getMonth() + 1)}</text>`;
+    if (i % every === 0 && t.iso !== lastLabelDate) {
+      s += `<text x="${x.toFixed(1)}" y="${h - 8}" text-anchor="middle">${pad(t.d.getDate())}/${pad(t.d.getMonth() + 1)}</text>`;
+      lastLabelDate = t.iso;
+    }
     const tip = `<b>${fmtDate(t.d)}</b><br>${esc(t.merchant)}<br>${esc(t.desc)}<br>Importo ${fmt(t.amount)}<br>Saldo apertura ${fmt(c.open)}<br>Massimo ${fmt(c.high)} · minimo ${fmt(c.low)}<br>Saldo chiusura ${fmt(c.close)}`;
-    s += `<rect class="hit" x="${(m.l + step * i).toFixed(1)}" y="${m.t}" width="${step.toFixed(1)}" height="${h - m.t - m.b}" ${tipAttr(tip)}/>`;
+    s += `<rect class="hit" x="${(m.l + step * i).toFixed(1)}" y="${m.t}" width="${step.toFixed(1)}" height="${volumeBottom - m.t}" ${tipAttr(tip)}/>`;
   });
   host.innerHTML = s + '</svg>';
 }
@@ -1864,7 +1878,7 @@ function tabTrends(P) {
   <section class="card"><h3>Cosa emerge</h3><ul class="insights">${insights().map(x => `<li>${x}</li>`).join('')}</ul></section>
   <section class="card"><h3>Calendario delle spese</h3><p class="hint">Più il colore è intenso, più hai speso quel giorno. Clicca un giorno per filtrarlo.</p><div class="heat-wrap" id="cHeat"></div></section>
   <section class="card"><div class="card-h"><div><h3>Spesa giornaliera</h3><p class="hint">Le barre sono i singoli giorni, la linea è la media degli ultimi 7 giorni.</p></div></div><div id="cDaily"></div></section>
-  <section class="card"><h3>Saldo a candele</h3><p class="hint">Una candela per operazione, in ordine cronologico: mostra la variazione del saldo e il saldo progressivo delle operazioni filtrate.</p><div id="cCandles"></div></section>
+  <section class="card"><h3>Andamento per operazione</h3><p class="hint">Ogni candela è una singola operazione: verde per le entrate, rossa per le uscite. Le barre in basso indicano l’importo; passa sulle candele per i dettagli.</p><div id="cCandles"></div></section>
   <section class="card s4"><h3>Giorno della settimana</h3><p class="hint">Spesa media per giorno.</p><div id="cDow"></div></section>
   <section class="card s4"><h3>Giorno del mese</h3><p class="hint">Quando si concentrano le uscite (affitto, abbonamenti…).</p><div id="cDom"></div></section>
   <section class="card s4"><h3>Quanto pesano le singole spese</h3><p class="hint">Numero di operazioni per fascia di importo.</p><div id="cHist"></div></section>
