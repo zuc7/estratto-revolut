@@ -258,10 +258,11 @@ tbody tr:hover td{background:var(--hover)}
 .dashboard-expenses .dwrap{justify-content:center;align-items:center;gap:12px}
 .dashboard-expenses .dwrap>div:first-child{flex:0 1 260px;width:min(100%,260px);min-width:min(200px,100%)}
 .dashboard-expenses .dwrap>.rows{flex:1 1 220px;text-align:left}
+@container (max-width:400px){.dashboard-expenses .dwrap{flex-wrap:wrap}.dashboard-expenses .dwrap>div:first-child{flex-basis:160px;width:min(100%,160px);min-width:0}.dashboard-expenses .dwrap>.rows{flex-basis:100%;min-width:0}}
 .rows.plain .rw{grid-template-columns:minmax(0,1fr) auto}
 .rows.plain .bar{display:none}
 .rows.plain .rw .val small{min-width:48px;text-align:right}
-.row3{grid-column:span 12;display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:16px}
+.row3{grid-column:span 12;display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:12px}
 .row3>.card{grid-column:auto}
 .fq{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;width:100%;border:0;background:transparent;text-align:left;padding:6px;border-radius:8px}
 .fq:hover{background:var(--hover)}
@@ -480,8 +481,8 @@ body{background:var(--paper);font-size:14px}
 .card{border-radius:14px;padding:20px 22px}
 .tablewrap{border-radius:10px}
 dialog{border-radius:14px}
-.grid{gap:clamp(10px,1.4vw,18px)}
-.row3{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));align-items:stretch;gap:clamp(10px,1.4vw,16px)}
+.grid{gap:12px}
+.row3{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));align-items:stretch;gap:12px}
 .row3>.card{align-self:stretch}
 .dashboard-grid{grid-auto-rows:min-content}
 .dashboard-grid,.row3{align-items:stretch}
@@ -490,11 +491,12 @@ dialog{border-radius:14px}
   .dash{grid-template-columns:minmax(0,1fr)}
   .side{position:fixed;z-index:40;left:0;right:auto;top:50%;bottom:auto;width:min(260px,85vw);height:auto;max-height:90vh;overflow:hidden;transform:translate(-100%,-50%);visibility:hidden;border:1px solid var(--line);border-left:0;border-radius:0 16px 16px 0;box-shadow:0 12px 36px rgba(0,0,0,.15);transition:transform .22s,visibility .22s}
   .side.nav-open{transform:translate(0,-50%);visibility:visible}
-  .nav-edge{position:fixed;z-index:38;left:0;top:calc(50% - 67px);width:5px;height:134px;border:0;border-radius:2.5px;background:var(--accent);opacity:.9;transition:opacity .15s,transform .2s}
+  .nav-edge{position:fixed;z-index:38;left:0;top:calc(50% - 67px);width:3px;height:134px;border:0;border-radius:1.5px;background:var(--accent);opacity:.9;transition:opacity .15s,transform .2s}
   .nav-edge:hover,.nav-edge:focus-visible{opacity:1}
   .nav-edge[aria-expanded=true]{opacity:0;pointer-events:none;transform:translateX(-100%)}
   .side:hover,.side:focus-within{transform:translate(0,-50%);visibility:visible}
 }
+@media(min-width:981px) and (max-width:1100px){body.dashing:has(.dashboard-grid) .dashboard-grid>.s8{grid-column:span 8}body.dashing:has(.dashboard-grid) .dashboard-grid>.s4{grid-column:span 4}}
 @media(max-width:980px){.nav-edge{display:none}}
 @media(min-width:981px) and (hover:none){.nav-edge{display:none}}
 @media(max-height:700px) and (min-width:981px) and (hover:hover){.side-foot{display:none}.side{gap:5px;padding:10px}.side .tab{min-height:34px;padding-top:6px;padding-bottom:6px}.side-actions{gap:1px;padding:8px 0}.side-settings{min-height:34px}}
@@ -1771,9 +1773,9 @@ function tabOverview(P) {
   const Q = dashboardReads(ico);
   const last = D.F.slice(-5).reverse();
 
-  const secBuckets = w.b ? `<section class="card ${w.de ? 's6' : ''}"><div class="card-h"><div><h3>Entrate vs Uscite</h3><p class="hint">Clicca una barra per limitare l’analisi a quel periodo.</p></div>
+  const secBuckets = w.b ? `<section class="card ${w.de ? 's8' : ''}"><div class="card-h"><div><h3>Entrate vs Uscite</h3><p class="hint">Clicca una barra per limitare l’analisi a quel periodo.</p></div>
     <div class="legend"><span><i style="background:var(--in)"></i>Entrate</span><span><i style="background:var(--out)"></i>Uscite</span><span><i class="ln-i"></i>Saldo</span></div></div><div id="cBuckets"></div></section>` : '';
-  const secDonutExp = w.de ? `<section class="card dashboard-expenses ${w.b ? 's6' : ''}"><h3>Categorie di spesa</h3><div class="dwrap"><div id="cDonut"></div><div class="rows plain" id="catRows"></div></div></section>` : '';
+  const secDonutExp = w.de ? `<section class="card dashboard-expenses ${w.b ? 's4' : ''}"><h3>Categorie di spesa</h3><div class="dwrap"><div id="cDonut"></div><div class="rows plain" id="catRows"></div></div></section>` : '';
 
   const midCards = [];
   if (w.di) midCards.push(`<section class="card"><h3>Distribuzione entrate</h3><div class="dwrap"><div id="cDonutIn"></div><div class="rows plain" id="incRows"></div></div></section>`);
