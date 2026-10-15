@@ -445,6 +445,21 @@ dialog{border-radius:14px}
 .row3{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));align-items:stretch;gap:clamp(10px,1.4vw,16px)}
 .row3>.card{align-self:stretch}
 .dashboard-grid{grid-auto-rows:min-content}
+.dashboard-grid,.row3{align-items:start}
+.row3>.card{align-self:start}
+@media(min-width:981px) and (hover:hover){
+  .dash{grid-template-columns:minmax(0,1fr)}
+  .side{position:fixed;z-index:40;left:0;right:auto;top:50%;bottom:auto;width:min(260px,85vw);height:min(720px,90vh);transform:translate(-100%,-50%);visibility:hidden;border:1px solid var(--line);border-left:0;border-radius:0 16px 16px 0;box-shadow:0 12px 36px rgba(0,0,0,.15);transition:transform .22s,visibility .22s}
+  .side.nav-open{transform:translate(0,-50%);visibility:visible}
+  .side::before{content:"";position:fixed;left:100%;top:calc(50% - 28px);width:14px;height:56px;background:var(--accent);border-radius:0 10px 10px 0;box-shadow:3px 0 12px rgba(0,0,0,.12)}
+  .side:not(.nav-open)::after{content:"Menu";position:fixed;left:100%;top:50%;transform:translate(4px,-50%);writing-mode:vertical-rl;font-size:10px;color:var(--surface);pointer-events:none}
+  .side.nav-open::before,.side.nav-open::after{display:none}
+  .nav-edge{position:fixed;z-index:38;left:0;top:calc(50% - 36px);width:18px;height:72px;border:0;border-radius:0 12px 12px 0;background:var(--accent);opacity:.42}
+  .nav-edge:hover,.nav-edge:focus-visible{opacity:1}
+  .side:hover,.side:focus-within{transform:translate(0,-50%);visibility:visible}
+}
+@media(max-width:980px){.nav-edge{display:none}}
+@media(min-width:981px) and (hover:none){.nav-edge{display:none}}
 .settings-section+.settings-section{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
 .settings-section h3{margin:0;font-size:14px}
 .settings-section .muted{font-size:12.5px}
@@ -592,7 +607,8 @@ dialog{border-radius:14px}
     </div>
   </aside>
 
-  <aside class="side" aria-label="Navigazione">
+  <button class="nav-edge" data-act="menu-toggle" aria-label="Apri menu di navigazione" aria-expanded="false" aria-controls="tabs"></button>
+  <aside class="side" id="sideNav" aria-label="Navigazione">
     <nav class="tabs" id="tabs" role="tablist" aria-label="Sezioni"></nav>
     <div class="side-actions" aria-label="Azioni rapide">
       <button class="tab" data-act="openrail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filtri</button>
@@ -1667,6 +1683,13 @@ function dashboardReads(icons) {
   const repeat = [...D.merList].filter(m => m.n >= 3).sort((a, b) => b.n - a.n || b.sum - a.sum)[0];
   if (repeat) reads.push({c: 'var(--accent)', i: icons.cal, t: `Ci torni spesso: ${esc(repeat.name)}`, s: `${repeat.n} pagamenti, in media ${fmt(repeat.sum / repeat.n)} ciascuno.`});
 
+  if (D.nExp >= 3) {
+    const topMerchants = [...D.merList].sort((a, b) => b.sum - a.sum).slice(0, 3), topSum = sum(topMerchants, m => m.sum);
+    reads.push({c: 'var(--out)', i: icons.ch, t: 'Quanto si concentrano le spese', s: `I primi ${topMerchants.length} esercenti valgono ${pct(topSum / D.expSum, 1)} delle uscite (${fmt(topSum)}).`});
+  }
+  if (D.days >= 7 && D.expSum > 0) reads.push({c: 'var(--accent)', i: icons.cal, t: 'Ritmo medio giornaliero', s: `${fmt(D.avgDay)} al giorno nell’intervallo selezionato.`});
+  if (D.nExp >= 2) reads.push({c: 'var(--accent)', i: icons.ch, t: 'Importo medio per spesa', s: `${fmt(D.avgTx)} su ${plural(D.nExp, 'operazione', 'operazioni')}.`});
+
   const small = D.exp.filter(t => t.abs <= 10);
   if (small.length >= 3) facts.push({t: 'Le piccole spese', s: `${small.length} acquisti da 10 € o meno sommano ${fmt(sum(small, t => t.abs))} (${pct(sum(small, t => t.abs) / D.expSum, 1)} delle uscite).`});
   if (D.nExp >= 8) {
@@ -1684,7 +1707,7 @@ function dashboardReads(icons) {
     }
   }
   if (facts.length) {
-    const seed = `${S.fileName}|${D.start.toISOString()}|${D.end.toISOString()}|${D.expSum.toFixed(2)}`;
+    const seed = `${S.fileName}|${D.start.toISOString()}|${D.end.toISOString()}|${D.F.map(t => t.id).join(',')}`;
     const hash = [...seed].reduce((n, ch) => (n * 31 + ch.charCodeAt(0)) >>> 0, 7);
     const fact = facts[hash % facts.length];
     reads.push({c: '#A15BF0', i: icons.star, t: fact.t, s: fact.s, tag: 'Curiosità'});
@@ -2253,6 +2276,11 @@ document.addEventListener('click', e => {
     case 'cat-save': saveCat(); break;
     case 'wg-open': openWgDialog(); break;
     case 'wg-close': $('#wgDlg').close(); break;
+    case 'menu-toggle': {
+      const side = $('#sideNav'), edge = $('.nav-edge');
+      side.classList.add('nav-open'); edge.setAttribute('aria-expanded', 'true');
+      break;
+    }
     case 'openrail': $('#rail').classList.add('open'); $('#backdrop').hidden = false; break;
     case 'closerail': closeRail(); break;
     case 'tab': S.tab = v.tab; renderTabs(); renderPanel(); break;
@@ -2381,6 +2409,23 @@ document.addEventListener('click', e => {
 
   }
 });
+
+const sideNav = $('#sideNav'), navEdge = $('.nav-edge');
+let navCloseTimer;
+if (window.matchMedia('(min-width: 981px) and (hover: hover)').matches) {
+  const openNav = () => { clearTimeout(navCloseTimer); sideNav.classList.add('nav-open'); navEdge.setAttribute('aria-expanded', 'true'); };
+  const scheduleNavClose = () => { clearTimeout(navCloseTimer); navCloseTimer = setTimeout(() => { sideNav.classList.remove('nav-open'); navEdge.setAttribute('aria-expanded', 'false'); }, 700); };
+  document.addEventListener('pointermove', e => {
+    if (e.pointerType === 'mouse' && e.clientX <= 12) openNav();
+    else if (!sideNav.contains(e.target) && e.target !== navEdge && !navEdge.contains(e.target)) scheduleNavClose();
+  });
+  sideNav.addEventListener('pointerenter', () => clearTimeout(navCloseTimer));
+  sideNav.addEventListener('pointerleave', scheduleNavClose);
+  navEdge.addEventListener('pointerenter', openNav);
+  navEdge.addEventListener('focus', openNav);
+  sideNav.addEventListener('focusout', e => { if (!sideNav.contains(e.relatedTarget) && e.relatedTarget !== navEdge) scheduleNavClose(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { clearTimeout(navCloseTimer); sideNav.classList.remove('nav-open'); navEdge.setAttribute('aria-expanded', 'false'); } });
+}
 
 /* campi dei filtri */
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
