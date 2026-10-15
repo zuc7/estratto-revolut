@@ -373,44 +373,6 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
   .receipt{transform:none}
   .rail{width:100vw;border-radius:0}
 }
-@media(min-width:1500px) and (min-height:760px){
-  .dash{align-items:stretch}
-  .side{border-right:0}
-  .dashing .brand{border-right:0}
-  .tab[aria-selected=true]{border-color:transparent}
-  .side-settings{border-top:0}
-  #main{padding:14px 20px 18px;min-height:calc(100vh - 68px);display:flex;flex-direction:column}
-  .active{gap:5px;margin-bottom:8px;min-height:24px}
-  .kpis{gap:10px}
-  .kpi{padding:12px 16px;border-radius:16px}
-  .kpi .v{margin:5px 0 3px}
-  #panel{margin-top:8px;flex:1;display:flex;flex-direction:column}
-  #panel>.tools{margin-bottom:6px!important}
-  .grid{gap:10px}
-  .dashboard-grid:has(.dashboard-latest){flex:1;grid-template-rows:minmax(190px,1fr) minmax(155px,.85fr) minmax(150px,.8fr)}
-  .grid>.card{display:flex;flex-direction:column;min-height:0;padding:14px 16px;border-radius:16px}
-  .dashboard-grid #cBuckets{display:flex;flex:1;min-height:0}
-  .dashboard-grid .row3>.card{display:flex;flex-direction:column;min-height:0}
-  .grid>.card h3{font-size:14px}
-  .grid>.card .hint{margin:3px 0 7px;font-size:11.5px}
-  .row3{gap:10px}
-  .row3>.card{padding:13px 15px}
-  .dashboard-grid .dwrap{flex:1;min-height:0;gap:12px;margin-top:8px;flex-wrap:nowrap;align-items:stretch}
-  .dashboard-grid .dwrap>div:first-child{display:flex;align-items:center;justify-content:center;flex:0 0 clamp(140px,22vh,240px);width:clamp(140px,22vh,240px)}
-  .dashboard-grid .dwrap>.rows{display:flex;flex:1 1 auto;flex-direction:column;justify-content:space-evenly;max-height:none;min-height:0;overflow:auto}
-  .rw{padding:4px 6px;gap:8px;font-size:11.5px}
-  .home-frequent{display:flex;flex-direction:column}
-  .home-frequent .fq{flex:1;min-height:0;padding:3px 5px;gap:3px 8px;font-size:11.5px;align-content:center}
-  .fq .bar{height:5px}
-  .qa{display:flex;flex:1;flex-direction:column;justify-content:space-around;gap:6px;margin-top:9px}
-  .qi{flex:1;align-items:center;gap:9px;font-size:12px}
-  .qi .ic{width:34px;height:34px}
-  .qi .ic svg{width:16px;height:16px}
-  .qi span{font-size:11.5px}
-  .dashboard-latest .tablewrap{flex:1;min-height:0}
-  .dashboard-latest table{height:100%}
-  .dashboard-latest th,.dashboard-latest td{padding:4px 8px;font-size:11.5px}
-}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
 /* Interfaccia essenziale, con colori e tipografia di sistema. */
@@ -441,14 +403,14 @@ body{background:var(--paper);font-size:14px}
 .btn.primary:hover{filter:brightness(.94)}
 .btn.ghost{background:transparent}
 .btn.icon{width:36px;height:36px;justify-content:center;padding:8px}
-.landing{max-width:1120px;min-height:calc(100vh - 64px);padding:64px 32px;gap:72px}
+.landing{width:100%;max-width:none;min-height:0;padding:clamp(20px,5vw,64px) clamp(14px,4vw,48px);gap:clamp(24px,5vw,56px)}
 .landing h1{font-size:clamp(36px,4.6vw,52px);letter-spacing:-.035em;line-height:1.04}
 .landing p.lead{font-size:17px;line-height:1.55}
 .actions .btn{border-radius:10px}
 .receipt{border-radius:12px;transform:none;filter:drop-shadow(0 12px 24px rgba(0,0,0,.1))}
 .receipt::after{display:none}
 .dash{grid-template-columns:224px minmax(0,1fr);align-items:stretch}
-#main{padding:28px clamp(24px,3vw,48px) 64px;max-width:1600px}
+#main{padding:clamp(14px,2vw,28px) clamp(14px,3vw,48px) 64px;max-width:none;min-width:0}
 .side{top:64px;height:calc(100vh - 64px);padding:28px 16px 18px;border-right:1px solid var(--line);gap:16px}
 .tabs{gap:4px}
 .tabs::before{content:"ANALISI";padding:0 12px 8px;color:var(--ink3);font-size:10px;font-weight:650;letter-spacing:.09em}
@@ -474,6 +436,14 @@ body{background:var(--paper);font-size:14px}
 .card{border-radius:14px;padding:20px 22px}
 .tablewrap{border-radius:10px}
 dialog{border-radius:14px}
+.grid{gap:clamp(10px,1.4vw,18px)}
+.row3{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));align-items:start;gap:clamp(10px,1.4vw,16px)}
+.row3>.card{align-self:start}
+.dashboard-grid{grid-auto-rows:min-content}
+.settings-section+.settings-section{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+.settings-section h3{margin:0;font-size:14px}
+.settings-section .muted{font-size:12.5px}
+.settings-section .wg-list{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
 :root[data-theme="dark"] .kpi{background:var(--surface);border-color:var(--line)}
 :root[data-theme="dark"] .kpi:first-child{background:var(--surface);border-color:var(--line)}
 :root[data-theme="dark"] .kpi:first-child .l,:root[data-theme="dark"] .kpi:first-child .v,:root[data-theme="dark"] .kpi:first-child .s{color:inherit}
@@ -622,7 +592,7 @@ dialog{border-radius:14px}
       <button class="tab" data-act="pick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m-5 5 5-5 5 5M5 20h14"/></svg>Apri un file</button>
       <button class="tab" data-act="revolut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16m-5 0h5v5"/></svg>Aggiorna Revolut</button>
     </div>
-    <button class="tab side-settings" data-act="cols" aria-label="Impostazioni" title="Impostazioni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Impostazioni</button>
+    <button class="tab side-settings" data-act="wg-open" aria-label="Impostazioni" title="Impostazioni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Impostazioni</button>
     <div class="side-foot" id="sideNote"></div>
   </aside>
   <div id="main">
@@ -653,10 +623,10 @@ dialog{border-radius:14px}
   </div>
 </dialog>
 
-<dialog id="wgDlg" style="width:min(480px,94vw)">
-  <div class="dlg-h"><h2>Personalizza Panoramica</h2><p class="muted" style="margin:4px 0 0">Scegli quali sezioni visualizzare nella home.</p></div>
+<dialog id="wgDlg" style="width:min(600px,94vw)">
+  <div class="dlg-h"><h2>Impostazioni</h2><p class="muted" style="margin:4px 0 0">Gestisci le categorie incluse nell’analisi e i widget della panoramica.</p></div>
   <div class="dlg-b" id="wgBody"></div>
-  <div class="dlg-f"><button class="btn primary" data-act="wg-close">Chiudi</button></div>
+  <div class="dlg-f"><button class="btn ghost sm" data-act="cols">Mappa colonne CSV</button><span class="spacer"></span><button class="btn primary" data-act="wg-close">Chiudi</button></div>
 </dialog>
 
 <div id="tip" role="tooltip"></div>
@@ -1003,6 +973,7 @@ const WG_DEFS = [
   {id: 'latest', name: 'Ultime transazioni'}
 ];
 
+const visibleCategories = () => S.cats.filter(c => !S.hiddenCats.has(c));
 const S = {
   fileName: '', raw: null, map: null, sign: 'auto', dateFmt: 'dmy', autoNote: '',
   tx: [], skipped: 0, bounds: null, cats: [], knownCats: new Set(), hasAcct: false, accts: [],
@@ -1012,6 +983,7 @@ const S = {
   onlySelected: Boolean(store.get('estratto.onlySelected', false)),
   selQuery: '', selPage: 0,
   widgets: new Set(store.get('estratto.widgets', WG_DEFS.map(w => w.id))),
+  hiddenCats: new Set(store.get('estratto.hiddenCats', [])),
   filters: null, tab: 'panoramica', sort: {key: 'date', dir: -1}, page: 0, pageSize: 50
 };
 let D = null;
@@ -1140,7 +1112,7 @@ function applyCats() {
   S.cats = [...set].sort((a, b) => a.localeCompare(b, 'it'));
   const f = S.filters;
   if (f) {
-    for (const c of set) if (!S.knownCats.has(c)) f.cats.add(c);
+    for (const c of set) if (!S.knownCats.has(c) && !S.hiddenCats.has(c)) f.cats.add(c);
     for (const c of [...f.cats]) if (!set.has(c)) f.cats.delete(c);
   }
   S.knownCats = set;
@@ -1168,6 +1140,7 @@ function showDash() {
    ===================================================================== */
 function passes(t, f, o = {}) {
   if (!o.skipExcluded && S.excludedIds.has(t.id)) return false;
+  if (S.hiddenCats.has(t.cat)) return false;
   if (!o.skipSelected && S.onlySelected && !S.selectedIds.has(t.id)) return false;
   if (!o.skipDate) { if (f.from && t.iso < f.from) return false; if (f.to && t.iso > f.to) return false; }
   if (f.type === 'out' && t.amount >= 0) return false;
@@ -1380,7 +1353,7 @@ function renderRail() {
     if (!passes(t, f, {skipCats: true})) continue;
     const o = getOr(facet, t.cat, () => ({n: 0, net: 0})); o.n++; o.net += t.amount;
   }
-  const cats = [...S.cats].sort((a, b) => Math.abs((facet.get(b) || {net: 0}).net) - Math.abs((facet.get(a) || {net: 0}).net) || a.localeCompare(b, 'it'));
+  const cats = visibleCategories().sort((a, b) => Math.abs((facet.get(b) || {net: 0}).net) - Math.abs((facet.get(a) || {net: 0}).net) || a.localeCompare(b, 'it'));
   $('#catList').innerHTML = cats.map(c => {
     const o = facet.get(c) || {n: 0, net: 0};
     return `<label class="cat ${o.n ? '' : 'off'}" title="${plural(o.n, 'operazione', 'operazioni')}"><input type="checkbox" data-cat="${esc(c)}" ${f.cats.has(c) ? 'checked' : ''}><i class="dot" style="background:${catColor(c)}"></i><span class="nm">${esc(c)}</span><span class="n">${o.n ? fmt0(o.net) : '—'}</span></label>`;
@@ -1410,7 +1383,9 @@ function renderActive() {
   const c = (key, label) => chips.push(`<span class="achip">${label}<button data-act="clear" data-k="${key}" aria-label="Rimuovi filtro">✕</button></span>`);
   if (f.from || f.to) c('date', `${f.from ? fmtDate(fromIso(f.from)) : 'inizio'} – ${f.to ? fmtDate(fromIso(f.to)) : 'fine'}`);
   if (f.type !== 'all') c('type', f.type === 'out' ? 'Solo spese' : 'Solo entrate');
-  if (f.cats.size !== S.cats.length) c('cats', f.cats.size === 0 ? 'Nessuna categoria' : f.cats.size <= 2 ? esc([...f.cats].join(', ')) : `${f.cats.size} di ${S.cats.length} categorie`);
+  const cats = visibleCategories();
+  const selectedCats = cats.filter(name => f.cats.has(name));
+  if (selectedCats.length !== cats.length) c('cats', selectedCats.length === 0 ? 'Nessuna categoria' : selectedCats.length <= 2 ? esc(selectedCats.join(', ')) : `${selectedCats.length} di ${cats.length} categorie`);
   if (S.hasAcct && f.accts.size !== S.accts.length) c('accts', f.accts.size <= 2 ? esc([...f.accts].join(', ')) : `${f.accts.size} conti`);
   if (f.min != null || f.max != null) c('amt', `Importo ${f.min != null ? 'da ' + fmt0(f.min) : ''} ${f.max != null ? 'a ' + fmt0(f.max) : ''}`.trim());
   if (f.q) c('q', `Cerca: “${esc(f.q)}”`);
@@ -2040,7 +2015,7 @@ function tabSelection(P) {
   const rows = q ? allRows.filter(t => (t.hay + ' ' + t.cat.toLowerCase()).includes(q)) : allRows;
 
 
-  const selList = S.tx.filter(t => S.selectedIds.has(t.id) && !S.excludedIds.has(t.id) && !isInstantSavingsTransfer(t));
+  const selList = S.tx.filter(t => S.selectedIds.has(t.id) && !S.excludedIds.has(t.id) && !S.hiddenCats.has(t.cat) && !isInstantSavingsTransfer(t));
   const selExp = sum(selList.filter(t => t.amount < 0), t => t.abs);
   const selInc = sum(selList.filter(t => t.amount > 0), t => t.abs);
   const selNet = selInc - selExp;
@@ -2200,7 +2175,8 @@ function saveCat() {
 }
 
 function openWgDialog() {
-  $('#wgBody').innerHTML = `<div class="wg-list">${WG_DEFS.map(w => `<label class="wg-item"><input type="checkbox" data-wg="${w.id}" ${S.widgets.has(w.id) ? 'checked' : ''}><span>${esc(w.name)}</span></label>`).join('')}</div>`;
+  const cats = [...new Set([...S.cats, ...S.hiddenCats])].sort((a, b) => a.localeCompare(b, 'it'));
+  $('#wgBody').innerHTML = `<section class="settings-section"><h3>Categorie incluse</h3><p class="muted">Deseleziona una categoria per escluderla da riepiloghi, grafici e risultati.</p><div class="wg-list">${cats.map(c => `<label class="wg-item"><input type="checkbox" data-hidden-cat="${esc(c)}" ${S.hiddenCats.has(c) ? '' : 'checked'}><span>${esc(c)}</span></label>`).join('') || '<p class="muted">Carica un estratto per configurare le categorie.</p>'}</div></section><section class="settings-section"><h3>Widget panoramica</h3><div class="wg-list">${WG_DEFS.map(w => `<label class="wg-item"><input type="checkbox" data-wg="${w.id}" ${S.widgets.has(w.id) ? 'checked' : ''}><span>${esc(w.name)}</span></label>`).join('')}</div></section>`;
   $('#wgDlg').showModal();
 }
 
@@ -2223,7 +2199,7 @@ document.addEventListener('click', e => {
     case 'pick': $('#file').click(); break;
     case 'sample': loadText(sampleCSV(), 'esempio-spese.csv'); break;
     case 'theme': { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; store.set(THEME_KEY, t); break; }
-    case 'cols': if (S.raw) openMapDialog(false); break;
+    case 'cols': $('#wgDlg').close(); if (S.raw) openMapDialog(false); break;
     case 'map-cancel': $('#mapDlg').close(); break;
     case 'map-apply': applyMap(); break;
     case 'clearov': S.overrides = {}; S.txOv = new Map(); store.set('estratto.overrides', {}); if (S.tx.length) { applyCats(); render(); } toast('Categorie personalizzate azzerate.'); break;
@@ -2240,7 +2216,7 @@ document.addEventListener('click', e => {
     case 'type': f.type = v.v; S.page = 0; render(); break;
     case 'cats-all': f.cats = new Set(S.cats); S.page = 0; render(); break;
     case 'cats-none': f.cats = new Set(); S.page = 0; render(); break;
-    case 'cats-inv': f.cats = new Set(S.cats.filter(c => !f.cats.has(c))); S.page = 0; render(); break;
+    case 'cats-inv': f.cats = new Set(visibleCategories().filter(c => !f.cats.has(c))); S.page = 0; render(); break;
     case 'bucket': { const b = D.buckets[+v.i]; if (b) setRange(b.from, b.to); break; }
     case 'day': setRange(v.iso, v.iso); break;
     case 'cat': f.cats = (f.cats.size === 1 && f.cats.has(v.cat)) ? new Set(S.cats) : new Set([v.cat]); S.page = 0; render(); break;
@@ -2363,10 +2339,18 @@ document.addEventListener('click', e => {
 /* campi dei filtri */
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 $('#wgDlg').addEventListener('change', e => {
-  const i = e.target.closest('input[data-wg]'); if (!i) return;
-  i.checked ? S.widgets.add(i.dataset.wg) : S.widgets.delete(i.dataset.wg);
-  store.set('estratto.widgets', [...S.widgets]);
-  if (S.tab === 'panoramica') renderPanel();
+  const widget = e.target.closest('input[data-wg]');
+  if (widget) {
+    widget.checked ? S.widgets.add(widget.dataset.wg) : S.widgets.delete(widget.dataset.wg);
+    store.set('estratto.widgets', [...S.widgets]);
+    if (S.tab === 'panoramica') renderPanel();
+    return;
+  }
+  const category = e.target.closest('input[data-hidden-cat]'); if (!category) return;
+  const name = category.dataset.hiddenCat;
+  category.checked ? S.hiddenCats.delete(name) : S.hiddenCats.add(name);
+  store.set('estratto.hiddenCats', [...S.hiddenCats]);
+  S.page = 0; render();
 });
 $('#fFrom').addEventListener('change', e => { S.filters.from = e.target.value; S.page = 0; render(); });
 $('#fTo').addEventListener('change', e => { S.filters.to = e.target.value; S.page = 0; render(); });
