@@ -253,7 +253,7 @@ tbody tr:hover td{background:var(--hover)}
 #panel{margin-top:16px}
 .dwrap{display:flex;align-items:center;justify-content:flex-start;gap:clamp(12px,2vw,22px);flex-wrap:wrap;margin-top:14px}
 .dwrap>div:first-child{flex:0 1 min(32cqi,300px);width:min(32cqi,300px);min-width:140px}
-.dwrap>.rows{flex:1 1 200px;min-width:0;max-height:240px;overflow:auto}
+.dwrap>.rows{flex:1 1 200px;min-width:0}
 .rows.plain .rw{grid-template-columns:minmax(0,1fr) auto}
 .rows.plain .bar{display:none}
 .rows.plain .rw .val small{min-width:48px;text-align:right}
@@ -445,11 +445,11 @@ dialog{border-radius:14px}
 .row3{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));align-items:stretch;gap:clamp(10px,1.4vw,16px)}
 .row3>.card{align-self:stretch}
 .dashboard-grid{grid-auto-rows:min-content}
-.dashboard-grid,.row3{align-items:start}
-.row3>.card{align-self:start}
+.dashboard-grid,.row3{align-items:stretch}
+.row3>.card{align-self:stretch}
 @media(min-width:981px) and (hover:hover){
   .dash{grid-template-columns:minmax(0,1fr)}
-  .side{position:fixed;z-index:40;left:0;right:auto;top:50%;bottom:auto;width:min(260px,85vw);height:min(720px,90vh);transform:translate(-100%,-50%);visibility:hidden;border:1px solid var(--line);border-left:0;border-radius:0 16px 16px 0;box-shadow:0 12px 36px rgba(0,0,0,.15);transition:transform .22s,visibility .22s}
+  .side{position:fixed;z-index:40;left:0;right:auto;top:50%;bottom:auto;width:min(260px,85vw);height:auto;max-height:90vh;overflow:hidden;transform:translate(-100%,-50%);visibility:hidden;border:1px solid var(--line);border-left:0;border-radius:0 16px 16px 0;box-shadow:0 12px 36px rgba(0,0,0,.15);transition:transform .22s,visibility .22s}
   .side.nav-open{transform:translate(0,-50%);visibility:visible}
   .side::before{content:"";position:fixed;left:100%;top:calc(50% - 28px);width:14px;height:56px;background:var(--accent);border-radius:0 10px 10px 0;box-shadow:3px 0 12px rgba(0,0,0,.12)}
   .side:not(.nav-open)::after{content:"Menu";position:fixed;left:100%;top:50%;transform:translate(4px,-50%);writing-mode:vertical-rl;font-size:10px;color:var(--surface);pointer-events:none}
@@ -460,6 +460,7 @@ dialog{border-radius:14px}
 }
 @media(max-width:980px){.nav-edge{display:none}}
 @media(min-width:981px) and (hover:none){.nav-edge{display:none}}
+@media(max-height:700px) and (min-width:981px) and (hover:hover){.side-foot{display:none}.side{gap:5px;padding:10px}.side .tab{min-height:34px;padding-top:6px;padding-bottom:6px}.side-actions{gap:1px;padding:8px 0}.side-settings{min-height:34px}}
 .settings-section+.settings-section{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
 .settings-section h3{margin:0;font-size:14px}
 .settings-section .muted{font-size:12.5px}
@@ -481,8 +482,9 @@ dialog{border-radius:14px}
   .dashing #btnRail,.dashing #btnNew{display:none}
 }
 @media(max-width:980px){
-  .side{top:58px;padding:6px 12px;border-bottom:1px solid var(--line);border-right:0}
+  .side{top:58px;padding:6px 12px;border-bottom:1px solid var(--line);border-right:0;overflow:visible}
   .tabs::before,.side-actions::before{display:none}
+  .tabs,.side-actions{flex-wrap:wrap}
   .side-actions{display:flex;gap:4px;padding:0;border:0}
   .side-actions .tab{width:auto}
 }
