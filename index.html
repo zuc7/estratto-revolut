@@ -1595,6 +1595,46 @@ function drawBalance(host) {
   host.innerHTML = s + '</svg>';
 }
 
+function drawCandles(host) {
+  const ops = D.F, candles = [];
+  let balance = 0;
+  for (let i = 0; i < ops.length;) {
+    const date = ops[i].d, iso = ops[i].iso, open = balance;
+    let high = open, low = open, count = 0, inc = 0, exp = 0;
+    while (i < ops.length && ops[i].iso === iso) {
+      const t = ops[i++];
+      balance += t.amount;
+      high = Math.max(high, balance); low = Math.min(low, balance);
+      if (t.amount > 0) inc += t.amount; else exp += t.abs;
+      count++;
+    }
+    candles.push({date, open, high, low, close: balance, count, inc, exp});
+  }
+  if (!candles.length) { host.innerHTML = '<div class="empty">Nessuna operazione nel periodo.</div>'; return; }
+
+  const w = W(host), h = 280, m = {t: 14, r: 14, b: 30, l: 58}, volumeH = 30;
+  const iw = w - m.l - m.r, plotBottom = h - m.b - volumeH, ih = plotBottom - m.t;
+  const sc = niceScale(Math.min(0, ...candles.map(c => c.low)), Math.max(0, ...candles.map(c => c.high)), 4);
+  const y = v => m.t + (sc.hi - v) / (sc.hi - sc.lo) * ih;
+  const step = iw / candles.length, bodyW = Math.max(2, Math.min(14, step * .62));
+  const maxVolume = Math.max(1, ...candles.map(c => c.count));
+  let s = svgOpen(w, h, 'Saldo progressivo giornaliero a candele') + gridY(sc, y, m, w);
+  s += `<line x1="${m.l}" x2="${w - m.r}" y1="${plotBottom}" y2="${plotBottom}" stroke="var(--line)"/>`;
+  const every = Math.max(1, Math.ceil(74 / step));
+  candles.forEach((c, i) => {
+    const x = m.l + step * (i + .5), rising = c.close >= c.open, color = rising ? 'var(--in)' : 'var(--out)';
+    const openY = y(c.open), closeY = y(c.close), top = Math.min(openY, closeY), bodyH = Math.max(2, Math.abs(closeY - openY));
+    const volH = c.count / maxVolume * volumeH, volY = h - m.b - volH;
+    s += `<rect x="${(x - bodyW / 2).toFixed(1)}" y="${volY.toFixed(1)}" width="${bodyW.toFixed(1)}" height="${volH.toFixed(1)}" fill="${color}" opacity=".24"/>`;
+    s += `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${y(c.high).toFixed(1)}" y2="${y(c.low).toFixed(1)}" stroke="${color}" stroke-width="1.4"/>`;
+    s += `<rect class="candle" x="${(x - bodyW / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bodyW.toFixed(1)}" height="${bodyH.toFixed(1)}" fill="${rising ? 'var(--surface)' : color}" stroke="${color}" stroke-width="1.5"/>`;
+    if (i % every === 0) s += `<text x="${x.toFixed(1)}" y="${h - 8}" text-anchor="middle">${pad(c.date.getDate())}/${pad(c.date.getMonth() + 1)}</text>`;
+    const tip = `<b>${fmtDate(c.date)}</b><br>Saldo apertura ${fmt(c.open)}<br>Massimo ${fmt(c.high)} · minimo ${fmt(c.low)}<br>Saldo chiusura ${fmt(c.close)}<br>${plural(c.count, 'operazione', 'operazioni')} · entrate ${fmt(c.inc)} · uscite ${fmt(c.exp)}`;
+    s += `<rect class="hit" x="${(m.l + step * i).toFixed(1)}" y="${m.t}" width="${step.toFixed(1)}" height="${h - m.t - m.b}" ${tipAttr(tip)}/>`;
+  });
+  host.innerHTML = s + '</svg>';
+}
+
 function drawStacked(host) {
   const B = D.buckets, top = D.catList.slice(0, 8).map(c => c.cat), rest = D.catList.length > 8;
   const w = W(host), h = 300, m = {t: 12, r: 10, b: 30, l: 54}, iw = w - m.l - m.r, ih = h - m.t - m.b;
@@ -1834,13 +1874,14 @@ function tabTrends(P) {
   <section class="card"><h3>Cosa emerge</h3><ul class="insights">${insights().map(x => `<li>${x}</li>`).join('')}</ul></section>
   <section class="card"><h3>Calendario delle spese</h3><p class="hint">Più il colore è intenso, più hai speso quel giorno. Clicca un giorno per filtrarlo.</p><div class="heat-wrap" id="cHeat"></div></section>
   <section class="card"><div class="card-h"><div><h3>Spesa giornaliera</h3><p class="hint">Le barre sono i singoli giorni, la linea è la media degli ultimi 7 giorni.</p></div></div><div id="cDaily"></div></section>
+  <section class="card"><h3>Saldo a candele</h3><p class="hint">Una candela per giorno: saldo progressivo delle operazioni filtrate, da un saldo iniziale di 0. Le barre in basso contano le operazioni.</p><div id="cCandles"></div></section>
   <section class="card s4"><h3>Giorno della settimana</h3><p class="hint">Spesa media per giorno.</p><div id="cDow"></div></section>
   <section class="card s4"><h3>Giorno del mese</h3><p class="hint">Quando si concentrano le uscite (affitto, abbonamenti…).</p><div id="cDom"></div></section>
   <section class="card s4"><h3>Quanto pesano le singole spese</h3><p class="hint">Numero di operazioni per fascia di importo.</p><div id="cHist"></div></section>
   <section class="card s7"><h3>Andamento del saldo</h3><p class="hint">Entrate meno spese, accumulate giorno dopo giorno.</p><div id="cBalance"></div></section>
   <section class="card s5"><h3>Dove spendi di più</h3><p class="hint">Gli esercenti con il totale più alto. Clicca per cercarli.</p><div class="rows" id="merRows"></div></section>
   </div>`;
-  drawHeatmap($('#cHeat')); drawDaily($('#cDaily')); drawBalance($('#cBalance'));
+  drawHeatmap($('#cHeat')); drawDaily($('#cDaily')); drawCandles($('#cCandles')); drawBalance($('#cBalance'));
   $('#merRows').innerHTML = rowsHTML(D.merList.slice(0, 10).map(x => ({key: x.name, label: x.name, value: x.sum, small: `${x.n}×`, tip: `${esc(x.name)}: ${plural(x.n, 'operazione', 'operazioni')}, media ${fmt(x.sum / x.n)}`})), {act: 'merchant', attr: 'data-q'}) || '<div class="empty">Nessuna spesa.</div>';
   simpleBars($('#cDow'), GIORNI, D.dow.map(x => x.avg), D.dow.map((x, i) => `<b>${GIORNI_L[i]}</b><br>Media ${fmt(x.avg)}<br>Totale ${fmt(x.sum)} in ${plural(x.n, 'operazione', 'operazioni')}`), {label: 'Spesa media per giorno della settimana', every: 1, fmt: v => fmt0(v)});
   const dom = Array.from({length: 31}, () => ({sum: 0, n: 0})); D.exp.forEach(t => { dom[t.dom - 1].sum += t.abs; dom[t.dom - 1].n++; });
