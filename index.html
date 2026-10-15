@@ -179,7 +179,7 @@ input:focus,select:focus{border-color:var(--accent)}
 .side-foot svg{width:16px;height:16px}
 
 .grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:18px}
-.card{grid-column:span 12;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:23px 24px;min-width:0}
+.card{grid-column:span 12;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:23px 24px;min-width:0;container-type:inline-size}
 .card h3{margin:0;font-size:16px;font-weight:600;letter-spacing:-.005em}
 .card .hint{color:var(--ink2);font-size:12.5px;margin:4px 0 14px}
 .card-h{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
@@ -252,7 +252,7 @@ tbody tr:hover td{background:var(--hover)}
 /* ---------- panoramica ---------- */
 #panel{margin-top:16px}
 .dwrap{display:flex;align-items:center;justify-content:flex-start;gap:clamp(12px,2vw,22px);flex-wrap:wrap;margin-top:14px}
-.dwrap>div:first-child{flex:0 1 min(32%,250px);width:min(32%,250px);min-width:140px}
+.dwrap>div:first-child{flex:0 1 min(32cqi,300px);width:min(32cqi,300px);min-width:140px}
 .dwrap>.rows{flex:1 1 200px;min-width:0;max-height:240px;overflow:auto}
 .rows.plain .rw{grid-template-columns:minmax(0,1fr) auto}
 .rows.plain .bar{display:none}
@@ -265,12 +265,15 @@ tbody tr:hover td{background:var(--hover)}
 .fq .v small{color:var(--ink3);margin-left:10px}
 .fq .bar{grid-column:1/-1;height:6px;border-radius:99px;background:var(--grid);overflow:hidden}
 .fq .bar i{display:block;height:100%;border-radius:99px}
-.qa{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:18px;margin-top:14px}
-.qi{display:flex;gap:14px;align-items:flex-start}
-.qi .ic{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 18%,transparent);color:var(--c)}
-.qi .ic svg{width:20px;height:20px}
+.qa{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:clamp(10px,1.6cqi,18px);margin-top:14px}
+.qi{display:flex;gap:clamp(9px,2.5cqi,14px);align-items:flex-start;min-width:0}
+.qi .ic{flex:none;width:clamp(34px,8cqi,44px);height:clamp(34px,8cqi,44px);border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 18%,transparent);color:var(--c)}
+.qi .ic svg{width:clamp(17px,4cqi,20px);height:clamp(17px,4cqi,20px)}
+.qi .tag{display:inline-block;margin:0 0 4px;padding:2px 6px;border-radius:99px;background:var(--hover);color:var(--accent);font-size:10px;font-weight:650;letter-spacing:.03em;text-transform:uppercase}
 .qi b{display:block;color:var(--c);font-weight:600}
 .qi span{display:block;color:var(--ink2);font-size:12.5px}
+.qi b{font-size:clamp(12px,3.2cqi,14px);line-height:1.35}
+.qi span{font-size:clamp(11px,2.9cqi,12.5px);line-height:1.45;margin-top:3px}
 .dot-t{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px}
 @media(max-width:1200px){.row3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}}
 @media(max-width:680px){.row3{grid-template-columns:1fr}}
@@ -1647,6 +1650,48 @@ function insights() {
   return L;
 }
 
+function dashboardReads(icons) {
+  const reads = [], facts = [];
+  if (D.prev && D.prev.exp > 0) {
+    const delta = (D.expSum - D.prev.exp) / D.prev.exp;
+    reads.push({c: delta <= 0 ? 'var(--in)' : 'var(--out)', i: delta <= 0 ? icons.dn : icons.up,
+      t: `Spese ${delta < -.005 ? 'in calo' : delta > .005 ? 'in aumento' : 'stabili'} del ${pct(Math.abs(delta), 1)}`,
+      s: `${fmt(Math.abs(D.expSum - D.prev.exp))} ${delta <= 0 ? 'in meno' : 'in più'} rispetto al periodo precedente`});
+  } else if (D.prev && D.expSum > 0) {
+    reads.push({c: 'var(--out)', i: icons.up, t: 'Nuove uscite nel periodo', s: `Nell’intervallo precedente non risultavano spese; ora sono ${fmt(D.expSum)}.`});
+  } else if (D.catList.length) {
+    const cat = [...D.catList].filter(c => c.n >= 2).sort((a, b) => b.sum / b.n - a.sum / a.n)[0];
+    if (cat) reads.push({c: 'var(--accent)', i: icons.ch, t: `Acquisto medio più alto: ${esc(cat.cat)}`, s: `${fmt(cat.sum / cat.n)} per operazione, su ${plural(cat.n, 'acquisto', 'acquisti')}.`});
+  }
+
+  const repeat = [...D.merList].filter(m => m.n >= 3).sort((a, b) => b.n - a.n || b.sum - a.sum)[0];
+  if (repeat) reads.push({c: 'var(--accent)', i: icons.cal, t: `Ci torni spesso: ${esc(repeat.name)}`, s: `${repeat.n} pagamenti, in media ${fmt(repeat.sum / repeat.n)} ciascuno.`});
+
+  const small = D.exp.filter(t => t.abs <= 10);
+  if (small.length >= 3) facts.push({t: 'Le piccole spese', s: `${small.length} acquisti da 10 € o meno sommano ${fmt(sum(small, t => t.abs))} (${pct(sum(small, t => t.abs) / D.expSum, 1)} delle uscite).`});
+  if (D.nExp >= 8) {
+    const topThree = [...D.exp].sort((a, b) => b.abs - a.abs).slice(0, 3), share = sum(topThree, t => t.abs) / D.expSum;
+    if (share >= .2) facts.push({t: 'Tre acquisti pesano parecchio', s: `I tre più costosi valgono ${pct(share, 1)} di tutte le uscite: ${fmt(sum(topThree, t => t.abs))}.`});
+  }
+  if (D.days >= 21 && D.expSum > 0) {
+    const dayCount = [0, 0, 0, 0, 0, 0, 0];
+    for (let d = new Date(D.start); d <= D.end; d = addDays(d, 1)) dayCount[(d.getDay() + 6) % 7]++;
+    const weekDays = D.dow.slice(0, 5), weekends = D.dow.slice(5);
+    const wdDays = dayCount.slice(0, 5).reduce((a, b) => a + b, 0), weDays = dayCount.slice(5).reduce((a, b) => a + b, 0);
+    const wdAvg = sum(weekDays, x => x.sum) / Math.max(1, wdDays), weAvg = sum(weekends, x => x.sum) / Math.max(1, weDays);
+    if (wdDays >= 10 && weDays >= 4 && Math.max(wdAvg, weAvg) > Math.min(wdAvg, weAvg) * 1.25) {
+      facts.push({t: weAvg > wdAvg ? 'Weekend più costosi' : 'In settimana spendi di più', s: `In media ${fmt(Math.max(wdAvg, weAvg))} al giorno, contro ${fmt(Math.min(wdAvg, weAvg))} nell’altro periodo.`});
+    }
+  }
+  if (facts.length) {
+    const seed = `${S.fileName}|${D.start.toISOString()}|${D.end.toISOString()}|${D.expSum.toFixed(2)}`;
+    const hash = [...seed].reduce((n, ch) => (n * 31 + ch.charCodeAt(0)) >>> 0, 7);
+    const fact = facts[hash % facts.length];
+    reads.push({c: '#A15BF0', i: icons.star, t: fact.t, s: fact.s, tag: 'Curiosità'});
+  }
+  return reads;
+}
+
 function tabOverview(P) {
   const f = S.filters, iso = f.cats.size === 1, n = D.F.length;
   const show = id => S.widgets.has(id);
@@ -1658,13 +1703,10 @@ function tabOverview(P) {
   const fr = [...cnt].sort((a, b) => b[1] - a[1]).slice(0, 5);
   const ico = {
     up: '<path d="M7 17L17 7M9 7h8v8"/>', dn: '<path d="M7 7l10 10M17 9v8H9"/>',
-    cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>', ch: '<path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/>'
+    cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>', ch: '<path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/>',
+    star: '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3z"/>'
   };
-  const pos = D.net >= 0, base = pos ? D.expSum : D.incSum, top = D.catList[0];
-  const Q = [{c: pos ? 'var(--in)' : 'var(--out)', i: pos ? ico.up : ico.dn, t: `Saldo ${pos ? 'positivo' : 'negativo'} di ${pos ? '+' : ''}${fmt(D.net)}`,
-    s: base ? `${pos ? 'Le entrate superano le uscite' : 'Le uscite superano le entrate'} del ${pct(Math.abs(D.net) / base, 1)}` : ''}];
-  if (D.expSum) Q.push({c: 'var(--accent)', i: ico.cal, t: `Spesa media: ~${fmt(D.avgDay)} al giorno`, s: `${fmt(D.avgMonth)} al mese · su ${plural(D.days, 'giorno', 'giorni')}`});
-  if (top) Q.push({c: '#A15BF0', i: ico.ch, t: 'La categoria più alta', s: `${esc(top.cat)} (${pct(top.sum / D.expSum, 1)}) è la voce che pesa di più sulle uscite`});
+  const Q = dashboardReads(ico);
   const last = D.F.slice(-5).reverse();
 
   const secBuckets = w.b ? `<section class="card ${w.de ? 's6' : ''}"><div class="card-h"><div><h3>Entrate vs Uscite</h3><p class="hint">Clicca una barra per limitare l’analisi a quel periodo.</p></div>
@@ -1675,7 +1717,7 @@ function tabOverview(P) {
   if (w.di) midCards.push(`<section class="card"><h3>Distribuzione entrate</h3><div class="dwrap"><div id="cDonutIn"></div><div class="rows plain" id="incRows"></div></div></section>`);
   if (w.fq) midCards.push(`<section class="card home-frequent"><h3>Categorie più frequenti</h3><p class="hint">Per numero di operazioni. Clicca per isolarle.</p>
     ${fr.map(([c, k]) => `<button class="fq" data-act="cat" data-cat="${esc(c)}"><span class="nm"><i class="dot" style="background:${catColor(c)}"></i>${esc(c)}</span><span class="v">${k}<small>${pct(k / n, 1)}</small></span><span class="bar"><i style="width:${(k / fr[0][1] * 100).toFixed(1)}%;background:${catColor(c)}"></i></span></button>`).join('')}</section>`);
-  if (w.in) midCards.push(`<section class="card"><h3>Analisi rapida</h3><div class="qa">${Q.map(x => `<div class="qi" style="--c:${x.c}"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${x.i}</svg></div><div><b>${x.t}</b><span>${x.s}</span></div></div>`).join('')}</div></section>`);
+  if (w.in) midCards.push(`<section class="card"><h3>Analisi rapida</h3><div class="qa">${Q.map(x => `<div class="qi" style="--c:${x.c}"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${x.i}</svg></div><div>${x.tag ? `<small class="tag">${x.tag}</small>` : ''}<b>${x.t}</b><span>${x.s}</span></div></div>`).join('') || '<p class="hint">Servono più spese per trovare curiosità utili.</p>'}</div></section>`);
   const secMid = midCards.length ? `<div class="row3">${midCards.join('')}</div>` : '';
 
   const secLatest = w.lt ? `<section class="card dashboard-latest"><div class="card-h"><h3>Ultime transazioni</h3><button class="btn ghost sm" data-act="tab" data-tab="transazioni">Vedi tutte →</button></div>
