@@ -6,9 +6,6 @@
 <meta name="color-scheme" content="light dark">
 <title>Estratto – analisi delle spese da CSV</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
   --paper:#F2F1F3; --surface:#FFFFFF; --surface2:#F8F7F9;
@@ -415,6 +412,91 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
   .dashboard-latest th,.dashboard-latest td{padding:4px 8px;font-size:11.5px}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Interfaccia essenziale, con colori e tipografia di sistema. */
+:root{
+  --paper:#F5F5F7;--surface:#fff;--surface2:#F2F2F7;
+  --ink:#1D1D1F;--ink2:#6E6E73;--ink3:#86868B;
+  --line:#E5E5EA;--grid:#EFEFF4;--accent:#007AFF;--accent-ink:#fff;
+  --in:#248A3D;--out:#D70015;--hover:rgba(0,122,255,.07);--focus:#007AFF;
+  --f-display:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --f-body:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --f-mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+:root[data-theme="dark"]{
+  --paper:#000;--surface:#1C1C1E;--surface2:#2C2C2E;
+  --ink:#F5F5F7;--ink2:#AEAEB2;--ink3:#8E8E93;
+  --line:#38383A;--grid:#2C2C2E;--accent:#0A84FF;--accent-ink:#fff;
+  --in:#30D158;--out:#FF453A;--hover:rgba(10,132,255,.14);--focus:#0A84FF;
+}
+body{background:var(--paper);font-size:14px}
+.top{height:64px;padding:0 28px;gap:16px;background:var(--surface);border-bottom-color:var(--line)}
+.brand{font:650 20px/1 var(--f-display);letter-spacing:-.025em;gap:10px}
+.brand svg{width:30px;height:30px;padding:7px;border-radius:9px;background:var(--accent)}
+.filechip{font-size:12px;color:var(--ink3);gap:2px}
+.filechip b{font-size:13px;color:var(--ink);font-weight:600}
+.btn{border-color:var(--line);border-radius:9px;padding:8px 12px;background:var(--surface);transition:background .15s,border-color .15s}
+.btn:hover{border-color:var(--ink3);background:var(--surface2)}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(.94)}
+.btn.ghost{background:transparent}
+.btn.icon{width:36px;height:36px;justify-content:center;padding:8px}
+.landing{max-width:1120px;min-height:calc(100vh - 64px);padding:64px 32px;gap:72px}
+.landing h1{font-size:clamp(36px,4.6vw,52px);letter-spacing:-.035em;line-height:1.04}
+.landing p.lead{font-size:17px;line-height:1.55}
+.actions .btn{border-radius:10px}
+.receipt{border-radius:12px;transform:none;filter:drop-shadow(0 12px 24px rgba(0,0,0,.1))}
+.receipt::after{display:none}
+.dash{grid-template-columns:224px minmax(0,1fr);align-items:stretch}
+#main{padding:28px clamp(24px,3vw,48px) 64px;max-width:1600px}
+.side{top:64px;height:calc(100vh - 64px);padding:28px 16px 18px;border-right:1px solid var(--line);gap:16px}
+.tabs{gap:4px}
+.tabs::before{content:"ANALISI";padding:0 12px 8px;color:var(--ink3);font-size:10px;font-weight:650;letter-spacing:.09em}
+.tab{min-height:40px;padding:9px 12px;gap:11px;border-radius:9px;color:var(--ink2);font-size:13.5px}
+.tab[aria-selected=true]{background:var(--hover);color:var(--accent);font-weight:600}
+.tab[aria-selected=true]::before{display:none}
+.tab svg{width:18px;height:18px}
+.side-actions{display:grid;gap:4px;padding:14px 0;border-top:1px solid var(--line)}
+.side-actions::before{content:"AZIONI";padding:0 12px 5px;color:var(--ink3);font-size:10px;font-weight:650;letter-spacing:.09em}
+.side-actions .tab{color:var(--ink2)}
+.side-actions .tab:hover{background:var(--hover);color:var(--accent)}
+.side-settings{margin:0;padding:10px 12px;border:0;border-radius:9px;color:var(--ink2)}
+.side-foot{border-radius:10px;padding:12px;background:var(--surface2);border-color:transparent;font-size:12px}
+.side-foot b{color:var(--ink);font-weight:600}
+.rail{top:76px;right:16px;bottom:16px;border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.16)}
+.rail-h h2{font-size:18px}
+.fs{padding:12px 0}
+.kpis{gap:12px}
+.kpi{border-radius:14px;padding:18px 20px}
+.kpi:first-child{background:var(--surface);border-color:var(--line)}
+.kpi:first-child .l,.kpi:first-child .v,.kpi:first-child .s{color:inherit}
+.kpi .v{font-size:clamp(21px,2vw,28px)}
+.card{border-radius:14px;padding:20px 22px}
+.tablewrap{border-radius:10px}
+dialog{border-radius:14px}
+:root[data-theme="dark"] .kpi{background:var(--surface);border-color:var(--line)}
+:root[data-theme="dark"] .kpi:first-child{background:var(--surface);border-color:var(--line)}
+:root[data-theme="dark"] .kpi:first-child .l,:root[data-theme="dark"] .kpi:first-child .v,:root[data-theme="dark"] .kpi:first-child .s{color:inherit}
+:root[data-theme="dark"] .side{background:var(--surface);border-right-color:var(--line)}
+:root[data-theme="dark"] .side-foot{background:var(--surface2);border-color:var(--line)}
+:root[data-theme="dark"] body{background:var(--paper)}
+:root[data-theme="dark"] .top{background:var(--surface)}
+:root[data-theme="dark"] .card,:root[data-theme="dark"] .wallet-card{background:var(--surface);border-color:var(--line);box-shadow:none}
+:root[data-theme="dark"] .tab[aria-selected=true]{background:var(--hover);border-color:transparent;color:var(--accent)}
+:root[data-theme="dark"] .tab[aria-selected=true] svg{color:var(--accent)}
+@media(min-width:981px){
+  .dashing .top{padding-left:28px;padding-right:28px}
+  .dashing .brand{align-self:center;width:auto;padding:0;margin:0;border:0}
+  .side-actions .tab{width:100%}
+  .dashing #btnRail,.dashing #btnNew{display:none}
+}
+@media(max-width:980px){
+  .side{top:58px;padding:6px 12px;border-bottom:1px solid var(--line);border-right:0}
+  .tabs::before,.side-actions::before{display:none}
+  .side-actions{display:flex;gap:4px;padding:0;border:0}
+  .side-actions .tab{width:auto}
+}
+@media(max-width:768px){.top{height:58px;padding:0 12px}.landing{min-height:auto;padding:36px 20px}}
 </style>
 </head>
 <body>
@@ -534,6 +616,12 @@ dialog::backdrop{background:rgba(8,12,24,.55)}
 
   <aside class="side" aria-label="Navigazione">
     <nav class="tabs" id="tabs" role="tablist" aria-label="Sezioni"></nav>
+    <div class="side-actions" aria-label="Azioni rapide">
+      <button class="tab" data-act="openrail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filtri</button>
+      <button class="tab" data-act="export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m-5 5 5-5 5 5M5 20h14"/></svg>Esporta CSV</button>
+      <button class="tab" data-act="pick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m-5 5 5-5 5 5M5 20h14"/></svg>Apri un file</button>
+      <button class="tab" data-act="revolut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16m-5 0h5v5"/></svg>Aggiorna Revolut</button>
+    </div>
     <button class="tab side-settings" data-act="cols" aria-label="Impostazioni" title="Impostazioni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Impostazioni</button>
     <div class="side-foot" id="sideNote"></div>
   </aside>
