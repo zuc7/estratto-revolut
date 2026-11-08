@@ -516,6 +516,38 @@ dialog{border-radius:14px}
 @media(max-width:860px){.landing{min-height:auto;padding:24px clamp(14px,4vw,32px);gap:28px}.receipt{width:min(360px,100%)}}
 @media(max-width:768px){.top{height:58px;padding:0 12px}.landing{padding:24px 20px;gap:24px}}
 @media(max-width:420px){.landing{padding:16px 14px 32px;gap:20px}}
+
+/* Estratto: neutral paper, quiet chrome, a receipt as the one rich moment. */
+:root{--paper:#F7F5F0;--surface:#FFFEFA;--surface2:#F0EEE8;--ink:#20231F;--ink2:#4F5953;--ink3:#626B65;--line:#DEE1DA;--grid:#ECEEE8;--accent:#27684F;--accent-ink:#FFFFFF;--in:#2D7957;--out:#B24846;--hover:rgba(39,104,79,.08);--focus:#27684F}
+:root[data-theme="dark"]{--paper:#171A17;--surface:#20231F;--surface2:#292D28;--ink:#EFF1EA;--ink2:#B7BDB4;--ink3:#9DA59C;--line:#383E37;--grid:#2B302A;--accent:#A3D2B6;--accent-ink:#19271F;--in:#8FD0A7;--out:#F09B92;--hover:rgba(163,210,182,.12);--focus:#A3D2B6}
+body{font-size:15px}
+.top{height:64px;padding:0 32px}
+.brand{font-size:18px;font-weight:600;letter-spacing:0}
+.brand svg{width:28px;height:28px;padding:0;border-radius:0;background:transparent;color:var(--accent)}
+.btn{border-radius:9px;padding:9px 14px;transition:background-color .16s,border-color .16s,color .16s}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:500}
+.btn.primary:hover{filter:none;background:color-mix(in srgb,var(--accent) 88%,var(--ink))}
+:root[data-theme="dark"] .btn.primary:hover{background:color-mix(in srgb,var(--accent) 88%,var(--surface))}
+.landing{max-width:1200px;min-height:calc(100svh - 64px);padding:48px clamp(24px,5vw,72px);gap:clamp(40px,6vw,88px)}
+.landing h1{max-width:13ch;margin-bottom:20px;font-size:clamp(40px,4.4vw,60px);font-weight:500;line-height:1.06;letter-spacing:-.025em}
+.landing p.lead{max-width:45ch;margin-bottom:24px;font-size:18px;line-height:1.55}
+.actions{gap:8px}
+.actions .btn{padding:12px 18px;border-radius:9px;font-size:15px}
+.actions .btn[data-act="revolut"]{padding:12px 8px;border-color:transparent;background:transparent;color:var(--accent);font-weight:500}
+.actions .btn[data-act="revolut"]:hover{background:var(--hover);filter:none}
+.privacy{max-width:50ch;margin-top:20px;gap:8px;font-size:13px;line-height:1.5;color:var(--ink2)}
+.privacy svg{color:var(--ink2)}
+.receipt{--rc:#FFFDF6;width:min(420px,100%);padding:28px 28px 30px;border-radius:10px;color:#242720;background:var(--rc);box-shadow:0 12px 28px rgba(30,34,27,.12);font-size:13px;line-height:1.9;transform:rotate(.5deg);transition:transform .16s,border-color .16s}
+.receipt h2{font-weight:500;font-size:24px;letter-spacing:0}
+.receipt .sub{font-size:12px;color:#62695F}
+.receipt .ln{gap:8px}
+.receipt .ln.total{font-weight:500}
+.receipt .ln.total span:first-child{font-family:var(--f-body);font-size:12px;letter-spacing:0}
+.receipt .ln.total span:last-child{color:#27684F}
+:root[data-theme="dark"] .receipt{--rc:#F5F1E7;color:#242720;box-shadow:0 12px 28px rgba(0,0,0,.24)}
+@media(max-width:860px){.landing{min-height:auto;padding:40px 32px;gap:36px}.landing h1{max-width:16ch}.receipt{width:min(420px,100%)}}
+@media(max-width:768px){.top{height:58px;padding:0 20px}.landing{padding:32px 24px;gap:28px}.landing h1{font-size:clamp(36px,8vw,48px)}}
+@media(max-width:420px){.landing{padding:24px 16px 36px;gap:24px}.actions .btn[data-act="revolut"]{width:auto;justify-content:flex-start}}
 </style>
 </head>
 <body>
@@ -538,8 +570,8 @@ dialog{border-radius:14px}
 
 <section class="landing" id="landing">
   <div>
-    <h1>Carica il CSV delle tue spese e guarda dove vanno i soldi.</h1>
-    <p class="lead">Estratto legge l’export della tua banca o di un’app di budget, divide le operazioni per categoria e le trasforma in grafici, statistiche e filtri che puoi combinare come vuoi.</p>
+    <h1>Dai CSV, una mappa delle tue spese.</h1>
+    <p class="lead">Carica l’export della banca: Estratto riconosce date e importi, ordina le operazioni per categoria e mostra l’andamento mese per mese</p>
     <div class="actions">
       <button class="btn primary" data-act="pick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>Scegli un file CSV</button>
       <button class="btn" data-act="sample">Prova con dati di esempio</button>
@@ -547,7 +579,7 @@ dialog{border-radius:14px}
     </div>
     <div class="privacy">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-      <span>Il file non lascia mai il tuo computer: l’analisi avviene tutta nel browser. Servono solo una colonna con la data e una con l’importo; il separatore (virgola, punto e virgola, tab) viene riconosciuto da solo.</span>
+      <span>I dati restano nel browser. Basta una colonna con data e una con importo; Estratto riconosce virgola, punto e virgola o tab</span>
     </div>
   </div>
   <div class="receipt" id="drop" role="button" tabindex="0" aria-label="Trascina qui un file CSV oppure premi per sceglierlo">
@@ -560,7 +592,7 @@ dialog{border-radius:14px}
     <div class="ln"><span>Spese anomale</span><i></i><span>segnalate</span></div>
     <div class="ln"><span>Filtri</span><i></i><span>ovunque</span></div>
     <hr>
-    <div class="ln total"><span>DATI INVIATI</span><i></i><span>€ 0,00</span></div>
+    <div class="ln total"><span>Dati inviati</span><i></i><span>€ 0,00</span></div>
   </div>
 </section>
 
