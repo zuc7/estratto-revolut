@@ -524,6 +524,7 @@ body{font-size:15px}
 .top{height:64px;padding:0 32px}
 .brand{font-size:18px;font-weight:600;letter-spacing:0}
 .brand svg{width:28px;height:28px;padding:0;border-radius:0;background:transparent;color:var(--accent)}
+:root[data-theme="dark"] .brand svg{background:transparent;color:var(--accent)}
 .btn{border-radius:9px;padding:9px 14px;transition:background-color .16s,border-color .16s,color .16s}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:500}
 .btn.primary:hover{filter:none;background:color-mix(in srgb,var(--accent) 88%,var(--ink))}
@@ -570,7 +571,7 @@ body{font-size:15px}
 
 <section class="landing" id="landing">
   <div>
-    <h1>Dai CSV, una mappa delle tue spese.</h1>
+    <h1>Dal CSV, la mappa delle tue spese.</h1>
     <p class="lead">Carica l’export della banca: Estratto riconosce date e importi, ordina le operazioni per categoria e mostra l’andamento mese per mese</p>
     <div class="actions">
       <button class="btn primary" data-act="pick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>Scegli un file CSV</button>
